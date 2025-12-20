@@ -8,7 +8,16 @@ using namespace std;
 User* AuthManager::currentUser = nullptr;
 
 bool AuthManager::login(string userID, string password){
-    //To Come After FileManager is ready
+    vector<User> users = FileManager::loadUsers();
+    
+    for (auto& user : users) {
+        if (user.getUserID() == userID && user.getPassword() == password) {
+            currentUser = new User(user);
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 void AuthManager::logout(){

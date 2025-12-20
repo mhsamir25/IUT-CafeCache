@@ -21,7 +21,7 @@ private:
     vector<OrderItem> items;
     double totalAmount;
     time_t timestamp;
-    string status; // "ACTIVE", "COMPLETED", "CANCELLED"
+    string status; 
     
 public:
     Token();

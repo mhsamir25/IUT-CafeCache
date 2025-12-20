@@ -73,7 +73,7 @@ bool RechargeManager::approveRequest(string requestId) {
         User* user = FileManager::findUser(userId, users);
         
         if (user != nullptr) {
-            user->addToWallet(amount);
+            user->addtoWallet(amount);
             FileManager::saveUsers(users);
         }
         
