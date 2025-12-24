@@ -4,12 +4,13 @@
 #include "RechargeRequest.h"
 #include <iostream>
 #include <vector>
+#include "TerminalSetup.h"
 
 using namespace std;
 
 bool RechargeManager::submitRechargeRequest(string userId, double amount) {
     if (amount <= 0) {
-        cout << "\nError: Amount must be greater than 0.\n" << endl;
+        cout << RED << "\nError: Amount must be greater than 0.\n" << RESET << endl;
         return false;
     }
     
@@ -17,10 +18,10 @@ bool RechargeManager::submitRechargeRequest(string userId, double amount) {
     RechargeRequest request(requestId, userId, amount);
     
     if (FileManager::addRechargeRequest(request)) {
-        cout << "\n✓ Recharge request submitted successfully!" << endl;
-        cout << "Request ID: " << requestId << endl;
-        cout << "Amount: BDT " << amount << endl;
-        cout << "Status: PENDING\n" << endl;
+        printSuccess("\n✓ Recharge request submitted successfully!");
+        printLabelValue("Request ID: ", requestId);
+        printLabelValue("Amount: BDT ", to_string(amount));
+        printLabelValue("Status: ", string("PENDING"));
         return true;
     }
     
@@ -77,12 +78,12 @@ bool RechargeManager::approveRequest(string requestId) {
             FileManager::saveUsers(users);
         }
         
-        cout << "\n✓ Recharge request approved successfully!" << endl;
+        cout << GREEN << "\n✓ Recharge request approved successfully!" << RESET << endl;
         cout << "User: " << userId << " has been credited BDT " << amount << "\n" << endl;
         return true;
     }
     
-    cout << "\nError: Request not found or already processed.\n" << endl;
+    cout << RED << "\nError: Request not found or already processed.\n" << RESET << endl;
     return false;
 }
 
@@ -100,10 +101,10 @@ bool RechargeManager::rejectRequest(string requestId) {
     
     if (found) {
         FileManager::saveRechargeRequests(requests);
-        cout << "\n✓ Recharge request rejected.\n" << endl;
+        cout << GREEN << "\n✓ Recharge request rejected.\n" << RESET << endl;
         return true;
     }
     
-    cout << "\nError: Request not found or already processed.\n" << endl;
+    cout << RED << "\nError: Request not found or already processed.\n" << RESET << endl;
     return false;
 }

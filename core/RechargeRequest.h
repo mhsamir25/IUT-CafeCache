@@ -11,7 +11,7 @@ private:
     string requestId;
     string userId;
     double amount;
-    string status; // "PENDING", "APPROVED", "REJECTED"
+    string status; 
     time_t timestamp;
     
 public:

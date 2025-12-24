@@ -1,6 +1,7 @@
 #include "User.h"
 #include <sstream>
 #include <iostream>
+#include "TerminalSetup.h"
 
 using namespace std;
 
@@ -48,12 +49,12 @@ bool User::deductFromWallet(double amount){
 }
 
 void User:: displayInfo() const{
-    cout<< "\n=============USER INFORMATION=============="<<endl;
+    cout<< BOLD << CYAN << "\n=============USER INFORMATION==============" << RESET << endl;
     cout<< "User ID: " <<userID<<endl;
     cout<< "Name: " <<name<<endl;
     cout<<"Role: " <<role<<endl;
-    cout<<"Wallet Balance: BDT " <<walletBalance<<endl;
-    cout<<"==========================================\n"<<endl;
+    cout<< GREEN << "Wallet Balance: BDT " <<walletBalance<< RESET << endl;
+    cout<< BOLD << CYAN << "==========================================\n" << RESET << endl;
 }
 
 string User::toFileString() const{

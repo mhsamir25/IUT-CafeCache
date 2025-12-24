@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "TerminalSetup.h"
+
 using namespace std;
 
 Token::Token() : tokenId(""), userId(""), totalAmount(0.0), timestamp(time(nullptr)), status("ACTIVE") {}
@@ -30,13 +32,15 @@ string Token::getStatus() const { return status; }
 void Token::setStatus(string newStatus) { status = newStatus; }
 
 void Token::displayToken() const {
-    cout << "\n╔════════════════════════════════════════╗" << endl;
-    cout << "║         IUT CAFECACHE TOKEN           ║" << endl;
-    cout << "╚════════════════════════════════════════╝" << endl;
+    cout<<"\n";
+    cout << BOLD << GREEN << "╔════════════════════════════════════════╗" << RESET << endl;
+    cout << BOLD << GREEN << "║          IUT CAFECACHE TOKEN           ║" << RESET << endl;
+    cout << BOLD << GREEN << "╚════════════════════════════════════════╝" << RESET << endl;
     cout << "\nToken ID: " << tokenId << endl;
-    cout << "User ID: " << userId << endl;
+    printLabelValue("Token ID: ", tokenId);
+    printLabelValue("User ID: ", userId);
     time_t t = timestamp;
-    cout << "Time: " << ctime(&t);
+    printLabelValue("Time: ", string(ctime(&t)));
     cout << "\n----------------------------------------" << endl;
     cout << left << setw(20) << "ITEM" << setw(8) << "QTY" 
          << setw(10) << "PRICE" << "TOTAL" << endl;
@@ -50,8 +54,12 @@ void Token::displayToken() const {
     }
     
     cout << "----------------------------------------" << endl;
-    cout << "TOTAL AMOUNT: BDT " << fixed << setprecision(2) << totalAmount << endl;
-    cout << "STATUS: " << status << endl;
+    cout << GREEN << "TOTAL AMOUNT: BDT " << fixed << setprecision(2) << totalAmount << RESET << endl;
+    string statusColor = RESET;
+    if (status == "ACTIVE") statusColor = CYAN;
+    else if (status == "COMPLETED") statusColor = GREEN;
+    else if (status == "CANCELLED") statusColor = RED;
+    cout << "STATUS: " << statusColor << status << RESET << endl;
     cout << "========================================\n" << endl;
 }
 

@@ -1,6 +1,7 @@
 #include "FileManager.h"
 #include <fstream>
 #include <iostream>
+#include "TerminalSetup.h"
 
 using namespace std;
 
@@ -44,7 +45,7 @@ bool FileManager::saveUsers(const vector<User>& users) {
     ofstream file(USERS_FILE);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open users file for writing." << endl;
+        cerr << RED << "Error: Could not open users file for writing." << RESET << endl;
         return false;
     }
     
@@ -60,7 +61,7 @@ bool FileManager::addUser(const User& user) {
     ofstream file(USERS_FILE, ios::app);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open users file." << endl;
+        cerr << RED << "Error: Could not open users file." << RESET << endl;
         return false;
     }
     
@@ -121,7 +122,7 @@ bool FileManager::saveRechargeRequests(const vector<RechargeRequest>& requests) 
     ofstream file(RECHARGE_FILE);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open recharge requests file for writing." << endl;
+        cerr << RED << "Error: Could not open recharge requests file for writing." << RESET << endl;
         return false;
     }
     
@@ -137,7 +138,7 @@ bool FileManager::addRechargeRequest(const RechargeRequest& request) {
     ofstream file(RECHARGE_FILE, ios::app);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open recharge requests file." << endl;
+        cerr << RED << "Error: Could not open recharge requests file." << RESET << endl;
         return false;
     }
     
@@ -170,7 +171,7 @@ bool FileManager::saveTokens(const vector<Token>& tokens) {
     ofstream file(TOKENS_FILE);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open tokens file for writing." << endl;
+        cerr << RED << "Error: Could not open tokens file for writing." << RESET << endl;
         return false;
     }
     
@@ -186,7 +187,7 @@ bool FileManager::addToken(const Token& token) {
     ofstream file(TOKENS_FILE, ios::app);
     
     if (!file.is_open()) {
-        cerr << "Error: Could not open tokens file." << endl;
+        cerr << RED << "Error: Could not open tokens file." << RESET << endl;
         return false;
     }
     

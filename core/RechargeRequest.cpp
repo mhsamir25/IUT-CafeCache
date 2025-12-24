@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include "TerminalSetup.h"
 
 using namespace std;
 
@@ -41,10 +42,18 @@ RechargeRequest RechargeRequest::fromFileString(const string& line) {
 
 void RechargeRequest::display() const {
     time_t t = timestamp;
-    cout << "Request ID: " << requestId << endl;
-    cout << "User ID: " << userId << endl;
-    cout << "Amount: BDT " << fixed << setprecision(2) << amount << endl;
-    cout << "Status: " << status << endl;
+    // Use colored label/value printing
+    printLabelValue("Request ID: ", requestId);
+    printLabelValue("User ID: ", userId);
+    {
+        std::ostringstream ss; ss << fixed << setprecision(2) << amount;
+        printLabelValue("Amount: BDT ", ss.str());
+    }
+    string statusColor = RESET;
+    if (status == "PENDING") statusColor = YELLOW;
+    else if (status == "APPROVED") statusColor = GREEN;
+    else if (status == "REJECTED") statusColor = RED;
+    cout << "Status: " << statusColor << status << RESET << endl;
     cout << "Time: " << ctime(&t);
     cout << "----------------------------------------" << endl;
 }
@@ -89,11 +98,11 @@ RechargeRequest* RechargeList::findRequest(string requestId) {
 
 void RechargeList::displayAllRequests() const {
     if (head == nullptr) {
-        cout << "\nNo recharge requests found.\n" << endl;
+        cout << GRAY << "\nNo recharge requests found.\n" << RESET << endl;
         return;
     }
     
-    cout << "\n========== ALL RECHARGE REQUESTS ==========\n" << endl;
+    cout << BOLD << CYAN << "\n========== ALL RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
     RechargeNode* current = head;
     while (current != nullptr) {
         current->request.display();
@@ -103,7 +112,7 @@ void RechargeList::displayAllRequests() const {
 
 void RechargeList::displayUserRequests(string userId) const {
     bool found = false;
-    cout << "\n========== YOUR RECHARGE REQUESTS ==========\n" << endl;
+    cout << BOLD << CYAN << "\n========== YOUR RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
     
     RechargeNode* current = head;
     while (current != nullptr) {
@@ -115,13 +124,13 @@ void RechargeList::displayUserRequests(string userId) const {
     }
     
     if (!found) {
-        cout << "No recharge requests found.\n" << endl;
+        cout << GREEN << "No recharge requests found.\n" << RESET << endl;
     }
 }
 
 void RechargeList::displayPendingRequests() const {
     bool found = false;
-    cout << "\n========== PENDING RECHARGE REQUESTS ==========\n" << endl;
+    cout << BOLD << CYAN << "\n========== PENDING RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
     
     RechargeNode* current = head;
     while (current != nullptr) {
@@ -133,7 +142,7 @@ void RechargeList::displayPendingRequests() const {
     }
     
     if (!found) {
-        cout << "No pending recharge requests.\n" << endl;
+        cout << GREEN << "No pending recharge requests.\n" << RESET << endl;
     }
 }
 

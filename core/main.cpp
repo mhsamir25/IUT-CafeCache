@@ -6,6 +6,7 @@
 #include "RechargeManager.h"
 #include "Token.h"
 #include "TokenGenerator.h"
+#include "TerminalSetup.h"
 
 using namespace std;
 
@@ -38,7 +39,7 @@ void clearScreen() {
 }
 
 void pauseScreen() {
-    cout << "\nPress Enter to continue...";
+    printPrompt("\nPress Enter to continue...");
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 }
@@ -46,14 +47,15 @@ void pauseScreen() {
 // Main menu display
 void displayMainMenu() {
     clearScreen();
-    cout << "\n╔═══════════════════════════════════════╗" << endl;
-    cout << "║       IUT CAFECACHE SYSTEM           ║" << endl;
-    cout << "║     Cafe Management System           ║" << endl;
-    cout << "╚═══════════════════════════════════════╝" << endl;
-    cout << "\n1. Login" << endl;
-    cout << "2. Register New User" << endl;
-    cout << "3. Exit" << endl;
-    cout << "\nEnter your choice: ";
+    cout<<"\n";
+    printHeader("╔═══════════════════════════════════════╗");
+    printHeader("║        IUT CAFECACHE SYSTEM           ║");
+    printHeader("║       Cafe Management System          ║");
+    printHeader("╚═══════════════════════════════════════╝");
+    printInfo("\n1. Login");
+    printInfo("2. Register New User");
+    printInfo("3. Exit");
+    printPrompt("\nEnter your choice: ");
 }
 
 // Student menu
@@ -61,49 +63,50 @@ void displayStudentMenu() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
     
-    cout << "\n╔═══════════════════════════════════════╗" << endl;
-    cout << "║         STUDENT/TEACHER MENU         ║" << endl;
-    cout << "╚═══════════════════════════════════════╝" << endl;
-    cout << "\nWelcome, " << currentUser->getName() << "!" << endl;
-    cout << "User ID: " << currentUser->getUserID() << endl;
-    cout << "\n1. View Wallet Balance" << endl;
-    cout << "2. Submit Recharge Request" << endl;
-    cout << "3. View Recharge Request Status" << endl;
-    cout << "4. Place Order (Weekday Menu)" << endl;
-    cout << "5. View Purchase History" << endl;
-    cout << "6. Logout" << endl;
-    cout << "\nEnter your choice: ";
+    cout<<"\n";
+    printHeader("╔═══════════════════════════════════════╗");
+    printHeader("║         STUDENT/TEACHER MENU          ║");
+    printHeader("╚═══════════════════════════════════════╝");
+    printLabelValue("Welcome: ", currentUser->getName());
+    printLabelValue("User ID: ", currentUser->getUserID());
+    printInfo("\n1. View Wallet Balance");
+    printInfo("2. Submit Recharge Request");
+    printInfo("3. View Recharge Request Status");
+    printInfo("4. Place Order (Weekday Menu)");
+    printInfo("5. View Purchase History");
+    printInfo("6. Logout");
+    printPrompt("\nEnter your choice: ");
 }
 
 // Admin menu
 void displayAdminMenu() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
-
-    cout << "\n╔═══════════════════════════════════════╗" << endl;
-    cout << "║           ADMIN MENU                 ║" << endl;
-    cout << "╚═══════════════════════════════════════╝" << endl;
-    cout << "\nWelcome, " << currentUser->getName() << "!" << endl;
-    cout << "\n1. View Pending Recharge Requests" << endl;
-    cout << "2. Process Recharge Request" << endl;
-    cout << "3. View All Users" << endl;
-    cout << "4. Logout" << endl;
-    cout << "\nEnter your choice: ";
+    cout<<"\n";
+    printHeader("╔═══════════════════════════════════════╗");
+    printHeader("║           ADMIN MENU                  ║");
+    printHeader("╚═══════════════════════════════════════╝");
+    printLabelValue("Welcome: ", currentUser->getName());
+    printInfo("\n1. View Pending Recharge Requests");
+    printInfo("2. Process Recharge Request");
+    printInfo("3. View All Users");
+    printInfo("4. Logout");
+    printPrompt("\nEnter your choice: ");
 }
 
 // Login function
 void loginUser() {
     clearScreen();
-    cout << "\n========== USER LOGIN ==========" << "\n" << endl;
+    printHeader("\n========== USER LOGIN ==========");
     
     string userId, password;
-    cout << "Enter User ID: ";
+    printPrompt("Enter User ID: ");
     cin >> userId;
-    cout << "Enter Password: ";
+    printPrompt("Enter Password: ");
     cin >> password;
     
     if (AuthManager::login(userId, password)) {
-        cout << "\n✓ Login successful!\n" << endl;
+    printSuccess("\n✓ Login successful!\n");
         pauseScreen();
         
         if (AuthManager::isAdmin()) {
@@ -112,7 +115,7 @@ void loginUser() {
             handleStudentOperations();
         }
     } else {
-        cout << "\n✗ Invalid credentials. Please try again.\n" << endl;
+        printError("\n✗ Invalid credentials. Please try again.\n");
         pauseScreen();
     }
 }
@@ -120,34 +123,34 @@ void loginUser() {
 // Register new user
 void registerNewUser() {
     clearScreen();
-    cout << "\n========== USER REGISTRATION ==========" << "\n" << endl;
+    printHeader("\n========== USER REGISTRATION ==========");
     
     string userId, password, name, role;
     
-    cout << "Enter User ID (e.g., 230042101): ";
+    printPrompt("Enter User ID (e.g., 230042101): ");
     cin >> userId;
     
     // Check if user already exists
     vector<User> users = FileManager::loadUsers();
     for (const auto& user : users) {
         if (user.getUserID() == userId) {
-            cout << "\n✗ Error: User ID already exists!\n" << endl;
+            printError("\n✗ Error: User ID already exists!\n");
             pauseScreen();
             return;
         }
     }
     
-    cout << "Enter Password: ";
+    printPrompt("Enter Password: ");
     cin >> password;
     
     cin.ignore();
-    cout << "Enter Full Name: ";
+    printPrompt("Enter Full Name: ");
     getline(cin, name);
     
-    cout << "\nSelect Role:" << endl;
-    cout << "1. Student" << endl;
-    cout << "2. Teacher" << endl;
-    cout << "Enter choice (1 or 2): ";
+    printInfo("\nSelect Role:");
+    printInfo("1. Student");
+    printInfo("2. Teacher");
+    printPrompt("Enter choice (1 or 2): ");
     
     int roleChoice;
     cin >> roleChoice;
@@ -157,7 +160,7 @@ void registerNewUser() {
     } else if (roleChoice == 2) {
         role = "TEACHER";
     } else {
-        cout << "\n✗ Invalid role selection!\n" << endl;
+        printError("\n✗ Invalid role selection!\n");
         pauseScreen();
         return;
     }
@@ -165,11 +168,11 @@ void registerNewUser() {
     User newUser(userId, password, name, role, 0.0);
     
     if (FileManager::addUser(newUser)) {
-        cout << "\n✓ Registration successful!" << endl;
-        cout << "User ID: " << userId << endl;
-        cout << "Role: " << role << "\n" << endl;
+        printSuccess("\n✓ Registration successful!");
+        printLabelValue("User ID: ", userId);
+        printLabelValue("Role: ", role);
     } else {
-        cout << "\n✗ Registration failed. Please try again.\n" << endl;
+        printError("\n✗ Registration failed. Please try again.\n");
     }
     
     pauseScreen();
@@ -187,24 +190,24 @@ void generateOrderToken() {
             currentUser->setWalletBalance(updatedUser->getWalletBalance());
         }
 
-        cout << "\n========== PLACE ORDER (WEEKDAY MENU) ==========" << "\n" << endl;
-        cout << "Wallet Balance: BDT " << currentUser->getWalletBalance() << "\n" << endl;
+    printHeader("\n========== PLACE ORDER (WEEKDAY MENU) ==========");
+    printLabelValue("Wallet Balance: BDT ", to_string(currentUser->getWalletBalance()));
 
         // Weekday selection
         vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
         for (size_t i = 0; i < days.size(); ++i) {
-            cout << i+1 << ". " << days[i] << endl;
+            printInfo(to_string(i+1) + ". " + days[i]);
         }
-        cout << "0. Cancel" << endl;
+        printInfo("0. Cancel");
 
         int dayChoice;
-        cout << "\nSelect day (1-5): ";
+        printPrompt("\nSelect day (1-5): ");
         cin >> dayChoice;
 
         if (dayChoice == 0) return;
         if (dayChoice < 1 || dayChoice > 5) {
-            cout << "\n✗ Invalid day selection." << endl;
+            printError("\n✗ Invalid day selection.");
             pauseScreen();
             return;
         }
@@ -212,19 +215,19 @@ void generateOrderToken() {
         string selectedDay = days[dayChoice-1];
 
         // Meal category
-        cout << "\nSelect meal:" << endl;
-        cout << "1. Breakfast" << endl;
-        cout << "2. Lunch" << endl;
-        cout << "3. Dinner" << endl;
-        cout << "0. Cancel" << endl;
+    printInfo("\nSelect meal:");
+    printInfo("1. Breakfast");
+    printInfo("2. Lunch");
+    printInfo("3. Dinner");
+    printInfo("0. Cancel");
 
-        int mealChoice;
-        cout << "\nEnter choice: ";
-        cin >> mealChoice;
+    int mealChoice;
+    printPrompt("\nEnter choice: ");
+    cin >> mealChoice;
 
         if (mealChoice == 0) return;
         if (mealChoice < 1 || mealChoice > 3) {
-            cout << "\n✗ Invalid meal selection." << endl;
+            printError("\n✗ Invalid meal selection.");
             pauseScreen();
             return;
         }
@@ -279,62 +282,60 @@ void generateOrderToken() {
         }
 
         // Display items
-        cout << "\nMenu for " << selectedDay << " - ";
-        if (mealChoice == 1) cout << "Breakfast";
-        else if (mealChoice == 2) cout << "Lunch";
-        else cout << "Dinner";
-        cout << "\n" << endl;
+    string mealLabel = (mealChoice == 1) ? "Breakfast" : (mealChoice == 2 ? "Lunch" : "Dinner");
+    printHeader("\nMenu for " + selectedDay + " - " + mealLabel + "\n");
 
         for (size_t i = 0; i < menuItems.size(); ++i) {
-            cout << i+1 << ". " << menuItems[i].name << " - BDT " << menuItems[i].price << endl;
+            string line = to_string(i+1) + ". " + menuItems[i].name + " - BDT " + to_string(menuItems[i].price);
+            printInfo(line);
         }
-        cout << "0. Finish order / Go back" << endl;
+        printInfo("0. Finish order / Go back");
 
         // Create token and let user add multiple items
         string tokenId = TokenGenerator::generateTokenId();
         Token token(tokenId, currentUser->getUserID());
 
         while (true) {
-            cout << "\nSelect item number to add (0 to finish): ";
+            printPrompt("\nSelect item number to add (0 to finish): ");
             int itemChoice;
             cin >> itemChoice;
 
             if (itemChoice == 0) break;
             if (itemChoice < 1 || itemChoice > (int)menuItems.size()) {
-                cout << "Invalid item selection." << endl;
+                printError("Invalid item selection.");
                 continue;
             }
 
             int quantity;
-            cout << "Enter quantity: ";
+            printPrompt("Enter quantity: ");
             cin >> quantity;
             if (quantity <= 0) {
-                cout << "Quantity must be at least 1." << endl;
+                printError("Quantity must be at least 1.");
                 continue;
             }
 
             token.addItem(menuItems[itemChoice-1].name, quantity, menuItems[itemChoice-1].price);
-            cout << "✓ Added: " << menuItems[itemChoice-1].name << " x" << quantity << endl;
+            printSuccess("✓ Added: " + menuItems[itemChoice-1].name + " x" + to_string(quantity));
         }
 
         if (token.getTotalAmount() == 0) {
-            cout << "\n✗ No items selected. Order cancelled." << endl;
+            printError("\n✗ No items selected. Order cancelled.");
             pauseScreen();
             return;
         }
 
         // Check wallet balance
-        if (currentUser->getWalletBalance() < token.getTotalAmount()) {
-            cout << "\n✗ Insufficient wallet balance!" << endl;
-            cout << "Required: BDT " << token.getTotalAmount() << endl;
-            cout << "Available: BDT " << currentUser->getWalletBalance() << "\n" << endl;
+            if (currentUser->getWalletBalance() < token.getTotalAmount()) {
+            printError("\n✗ Insufficient wallet balance!");
+            printLabelValue("Required: BDT ", to_string(token.getTotalAmount()));
+            printLabelValue("Available: BDT ", to_string(currentUser->getWalletBalance()));
             pauseScreen();
             return;
         }
 
         char confirm;
-        cout << "\nTotal Amount: BDT " << token.getTotalAmount() << endl;
-        cout << "Confirm order and generate token automatically? (y/n): ";
+    printLabelValue("\nTotal Amount: BDT ", to_string(token.getTotalAmount()));
+    printPrompt("Confirm order and generate token automatically? (y/n): ");
         cin >> confirm;
 
         if (confirm == 'y' || confirm == 'Y') {
@@ -351,13 +352,13 @@ void generateOrderToken() {
 
                 clearScreen();
                 token.displayToken();
-                cout << "✓ Order placed successfully and token generated!" << endl;
-                cout << "Remaining Balance: BDT " << currentUser->getWalletBalance() << "\n" << endl;
+                printSuccess("✓ Order placed successfully and token generated!");
+                printLabelValue("Remaining Balance: BDT ", to_string(currentUser->getWalletBalance()));
             } else {
-                cout << "\n✗ Failed to deduct from wallet. Order not placed." << endl;
+                printError("\n✗ Failed to deduct from wallet. Order not placed.");
             }
         } else {
-            cout << "\nOrder cancelled." << endl;
+            printInfo("\nOrder cancelled.");
         }
 
     pauseScreen();
@@ -389,11 +390,11 @@ void handleStudentOperations() {
                 break;
             case 6:
                 AuthManager::logout();
-                cout << "\n✓ Logged out successfully!\n" << endl;
+                printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
                 return;
             default:
-                cout << "\n✗ Invalid choice. Please try again.\n" << endl;
+                printError("\n✗ Invalid choice. Please try again.\n");
                 pauseScreen();
         }
     }
@@ -412,10 +413,10 @@ void viewWalletBalance() {
         currentUser->setWalletBalance(updatedUser->getWalletBalance());
     }
     
-    cout << "\n========== WALLET BALANCE ==========\n" << endl;
-    cout << "User: " << currentUser->getName() << endl;
-    cout << "User ID: " << currentUser->getUserID() << endl;
-    cout << "\nCurrent Balance: BDT " << fixed << currentUser->getWalletBalance() << "\n" << endl;
+    printHeader("\n========== WALLET BALANCE ==========");
+    printLabelValue("User: ", currentUser->getName());
+    printLabelValue("User ID: ", currentUser->getUserID());
+    printLabelValue("\nCurrent Balance: BDT ", to_string(currentUser->getWalletBalance()));
     
         pauseScreen();
     }
@@ -424,21 +425,21 @@ void submitRechargeRequest() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
     
-    cout << "\n========== SUBMIT RECHARGE REQUEST ==========\n" << endl;
-    cout << "Current Balance: BDT " << currentUser->getWalletBalance() << "\n" << endl;
+    printHeader("\n========== SUBMIT RECHARGE REQUEST ==========");
+    printLabelValue("Current Balance: BDT ", to_string(currentUser->getWalletBalance()));
     
     double amount;
-    cout << "Enter amount to recharge: BDT ";
+    printPrompt("Enter amount to recharge: BDT ");
     cin >> amount;
     
     char confirm;
-    cout << "\nConfirm recharge request of BDT " << amount << "? (y/n): ";
+    printPrompt("\nConfirm recharge request of BDT " + to_string(amount) + "? (y/n): ");
     cin >> confirm;
     
     if (confirm == 'y' || confirm == 'Y') {
         RechargeManager::submitRechargeRequest(currentUser->getUserID(), amount);
     } else {
-        cout << "\nRecharge request cancelled.\n" << endl;
+        printInfo("\nRecharge request cancelled.\n");
     }
     
     pauseScreen();
@@ -463,20 +464,21 @@ void viewPurchaseHistory() {
     // Get all tokens for this user
     vector<Token> tokens = FileManager::getUserTokens(currentUser->getUserID());
     
-    cout << "\n========== PURCHASE HISTORY ==========\n" << endl;
+    printHeader("\n========== PURCHASE HISTORY ==========");
 
     // Debug: show how many tokens found
-    cout << "Found " << tokens.size() << " token(s) for user " << currentUser->getUserID() << ".\n" << endl;
+    printLabelValue("Found ", to_string(tokens.size()) + " token(s) for user " + currentUser->getUserID() + ".");
 
     if (tokens.empty()) {
-        cout << "No purchase history found.\n" << endl;
+        printInfo("No purchase history found.\n");
     } else {
         // Print each token (most recent last as stored in file)
         int idx = 1;
         for (const auto& token : tokens) {
-            cout << "----- Order #" << idx++ << " -----\n";
+            printInfo("----- Order #" + to_string(idx++) + " -----");
             token.displayToken();
-            cout << "--------------------------\n\n";
+            printSeparator();
+            printInfo("\n");
         }
     }
     
@@ -503,11 +505,11 @@ void handleAdminOperations() {
                 break;
             case 4:
                 AuthManager::logout();
-                cout << "\n✓ Logged out successfully!\n" << endl;
+                printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
                 return;
             default:
-                cout << "\n✗ Invalid choice. Please try again.\n" << endl;
+                printError("\n✗ Invalid choice. Please try again.\n");
                 pauseScreen();
         }
     }
@@ -526,7 +528,7 @@ void processRechargeRequest() {
     RechargeManager::viewPendingRequests();
     
     string requestId;
-    cout << "\nEnter Request ID to process (or 0 to cancel): ";
+    printPrompt("\nEnter Request ID to process (or 0 to cancel): ");
     cin >> requestId;
     
     if (requestId == "0") {
@@ -534,7 +536,7 @@ void processRechargeRequest() {
     }
     
     char decision;
-    cout << "Approve this request? (y/n): ";
+    printPrompt("Approve this request? (y/n): ");
     cin >> decision;
     
     if (decision == 'y' || decision == 'Y') {
@@ -551,27 +553,26 @@ void viewAllUsers() {
     clearScreen();
     vector<User> users = FileManager::loadUsers();
     
-    cout << "\n========== ALL USERS ==========\n" << endl;
+    printHeader("\n========== ALL USERS ==========");
     
     for (const auto& user : users) {
-        cout << "User ID: " << user.getUserID() << endl;
-        cout << "Name: " << user.getName() << endl;
-        cout << "Role: " << user.getRole() << endl;
-        cout << "Wallet Balance: BDT " << user.getWalletBalance() << endl;
-        cout << "----------------------------------------" << endl;
+        printLabelValue("User ID: ", user.getUserID());
+        printLabelValue("Name: ", user.getName());
+        printLabelValue("Role: ", user.getRole());
+        printLabelValue("Wallet Balance: BDT ", to_string(user.getWalletBalance()));
+        printSeparator();
     }
     
     pauseScreen();
 }
 
-// Main function
 int main() {
     int choice;
-    
+
     while (true) {
         displayMainMenu();
         cin >> choice;
-        
+
         switch (choice) {
             case 1:
                 loginUser();
@@ -581,14 +582,14 @@ int main() {
                 break;
             case 3:
                 clearScreen();
-                cout << "\nThank you for using IUT CafeCache System!" << endl;
-                cout << "Goodbye!\n" << endl;
+                printInfo("\nThank you for using IUT CafeCache System!");
+                printInfo("Goodbye!\n");
                 return 0;
             default:
-                cout << "\n✗ Invalid choice. Please try again.\n" << endl;
+                printError("\n✗ Invalid choice. Please try again.\n");
                 pauseScreen();
         }
     }
-    
+
     return 0;
 }
