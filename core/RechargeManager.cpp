@@ -10,7 +10,7 @@ using namespace std;
 
 bool RechargeManager::submitRechargeRequest(string userId, double amount) {
     if (amount <= 0) {
-        cout << RED << "\nError: Amount must be greater than 0.\n" << RESET << endl;
+            printError("Error: Amount must be greater than 0.");
         return false;
     }
     
@@ -78,12 +78,13 @@ bool RechargeManager::approveRequest(string requestId) {
             FileManager::saveUsers(users);
         }
         
-        cout << GREEN << "\n✓ Recharge request approved successfully!" << RESET << endl;
-        cout << "User: " << userId << " has been credited BDT " << amount << "\n" << endl;
+            printSuccess("\u2713 Recharge request approved successfully!");
+            printLabelValue("User: ", userId);
+            printLabelValue("Credited: BDT ", to_string(amount));
         return true;
     }
     
-    cout << RED << "\nError: Request not found or already processed.\n" << RESET << endl;
+        printError("Error: Request not found or already processed.");
     return false;
 }
 
@@ -101,10 +102,10 @@ bool RechargeManager::rejectRequest(string requestId) {
     
     if (found) {
         FileManager::saveRechargeRequests(requests);
-        cout << GREEN << "\n✓ Recharge request rejected.\n" << RESET << endl;
+            printSuccess("\u2713 Recharge request rejected.");
         return true;
     }
     
-    cout << RED << "\nError: Request not found or already processed.\n" << RESET << endl;
+        printError("Error: Request not found or already processed.");
     return false;
 }

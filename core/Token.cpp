@@ -32,35 +32,48 @@ string Token::getStatus() const { return status; }
 void Token::setStatus(string newStatus) { status = newStatus; }
 
 void Token::displayToken() const {
-    cout<<"\n";
-    cout << BOLD << GREEN << "╔════════════════════════════════════════╗" << RESET << endl;
-    cout << BOLD << GREEN << "║          IUT CAFECACHE TOKEN           ║" << RESET << endl;
-    cout << BOLD << GREEN << "╚════════════════════════════════════════╝" << RESET << endl;
-    cout << "\nToken ID: " << tokenId << endl;
+    std::ostringstream header;
+    header << "\n";
+    printHeader("╔════════════════════════════════════════╗");
+    printHeader("║          IUT CAFECACHE TOKEN           ║");
+    printHeader("╚════════════════════════════════════════╝");
     printLabelValue("Token ID: ", tokenId);
     printLabelValue("User ID: ", userId);
     time_t t = timestamp;
     printLabelValue("Time: ", string(ctime(&t)));
-    cout << "\n----------------------------------------" << endl;
-    cout << left << setw(20) << "ITEM" << setw(8) << "QTY" 
-         << setw(10) << "PRICE" << "TOTAL" << endl;
-    cout << "----------------------------------------" << endl;
-    
-    for (const auto& item : items) {
-        cout << left << setw(20) << item.itemName 
-             << setw(8) << item.quantity
-             << "BDT " << setw(6) << fixed << setprecision(2) << item.price
-             << "BDT " << item.totalPrice << endl;
+    printSeparator();
+
+    // table header
+    {
+        std::ostringstream ss;
+        ss << std::left << std::setw(20) << "ITEM" << std::setw(8) << "QTY" << std::setw(14) << "PRICE" << "TOTAL";
+        printInfo(ss.str());
     }
-    
-    cout << "----------------------------------------" << endl;
-    cout << GREEN << "TOTAL AMOUNT: BDT " << fixed << setprecision(2) << totalAmount << RESET << endl;
+    printInfo(std::string("----------------------------------------"));
+
+    for (const auto& item : items) {
+        std::ostringstream ss;
+        ss << std::left << std::setw(20) << item.itemName
+           << std::setw(8) << item.quantity;
+        {
+            std::ostringstream pss; pss << "BDT " << std::fixed << std::setprecision(2) << item.price;
+            ss << std::setw(14) << pss.str();
+        }
+        ss << "BDT " << std::fixed << std::setprecision(2) << item.totalPrice;
+        printInfo(ss.str());
+    }
+
+    printInfo(std::string("----------------------------------------"));
+    {
+        std::ostringstream tot; tot << "TOTAL AMOUNT: BDT " << std::fixed << std::setprecision(2) << totalAmount;
+        printSuccess(tot.str());
+    }
     string statusColor = RESET;
     if (status == "ACTIVE") statusColor = CYAN;
     else if (status == "COMPLETED") statusColor = GREEN;
     else if (status == "CANCELLED") statusColor = RED;
-    cout << "STATUS: " << statusColor << status << RESET << endl;
-    cout << "========================================\n" << endl;
+    printLabelValueColored("STATUS: ", status, statusColor);
+    printHeader("========================================\n");
 }
 
 string Token::toFileString() const {

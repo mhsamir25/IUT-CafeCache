@@ -1,6 +1,8 @@
 #ifndef TerminalSetup_H
 #define TerminalSetup_H
 
+#include <string>
+
 //ANSII COLOR CODES
 #define RESET       "\033[0m"
 #define RED         "\033[31m"
@@ -23,14 +25,22 @@ void clearScreen(); //wipes the screen
 double getCurrentTime(); //get time in seconds
 int getLength(const char text[]); //geta a text's length
 
+// Read password with masked '*' feedback
+std::string readPasswordMasked();
+
 // Simple colored printing helpers (convenience wrappers)
 #include <string>
 void printHeader(const std::string &text);
 void printInfo(const std::string &text);
 void printLabelValue(const std::string &label, const std::string &value);
+void printLabelValueColored(const std::string &label, const std::string &value, const std::string &valueColor);
 void printSuccess(const std::string &text);
 void printError(const std::string &text);
 void printPrompt(const std::string &text); // no newline, used before input
 void printSeparator();
+
+// Colors on/off
+void setColorsEnabled(bool enabled);
+bool isColorsEnabled();
 
 #endif

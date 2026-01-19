@@ -1,5 +1,7 @@
 #include <iostream>
 #include <limits>
+#include <iomanip>
+#include <sstream>
 #include "User.h"
 #include "AuthManager.h"
 #include "FileManager.h"
@@ -102,8 +104,10 @@ void loginUser() {
     string userId, password;
     printPrompt("Enter User ID: ");
     cin >> userId;
+    // Clear leftover newline from previous input, then use masked password input
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     printPrompt("Enter Password: ");
-    cin >> password;
+    password = readPasswordMasked();
     
     if (AuthManager::login(userId, password)) {
     printSuccess("\n✓ Login successful!\n");
@@ -129,6 +133,8 @@ void registerNewUser() {
     
     printPrompt("Enter User ID (e.g., 230042101): ");
     cin >> userId;
+    // consume leftover newline before reading masked password
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
     
     // Check if user already exists
     vector<User> users = FileManager::loadUsers();
@@ -141,7 +147,7 @@ void registerNewUser() {
     }
     
     printPrompt("Enter Password: ");
-    cin >> password;
+    password = readPasswordMasked();
     
     cin.ignore();
     printPrompt("Enter Full Name: ");
@@ -285,11 +291,14 @@ void generateOrderToken() {
     string mealLabel = (mealChoice == 1) ? "Breakfast" : (mealChoice == 2 ? "Lunch" : "Dinner");
     printHeader("\nMenu for " + selectedDay + " - " + mealLabel + "\n");
 
-        for (size_t i = 0; i < menuItems.size(); ++i) {
-            string line = to_string(i+1) + ". " + menuItems[i].name + " - BDT " + to_string(menuItems[i].price);
-            printInfo(line);
-        }
-        printInfo("0. Finish order / Go back");
+            // Print menu items in a table: No | ITEM (30) | PRICE
+            cout << BOLD << WHITE << left << setw(4) << "No" << setw(40) << "ITEM" << setw(12) << "PRICE" << RESET << endl;
+            cout << GRAY << string(56, '-') << RESET << endl;
+            for (size_t i = 0; i < menuItems.size(); ++i) {
+                std::ostringstream priceSs; priceSs << "BDT " << fixed << setprecision(2) << menuItems[i].price;
+                cout << WHITE << left << setw(4) << (to_string(i+1) + ".") << setw(40) << menuItems[i].name << setw(12) << priceSs.str() << RESET << endl;
+            }
+            printInfo("0. Finish order / Go back");
 
         // Create token and let user add multiple items
         string tokenId = TokenGenerator::generateTokenId();

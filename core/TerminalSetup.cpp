@@ -4,11 +4,23 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <unistd.h> // isatty
 
 using namespace std;
 
 
 struct termios originalSettings;
+
+// Colors enabled by default when stdout is a tty
+static bool colorsEnabled = isatty(STDOUT_FILENO);
+
+void setColorsEnabled(bool enabled) {
+    colorsEnabled = enabled;
+}
+
+bool isColorsEnabled() {
+    return colorsEnabled;
+}
 
 void setTerminal() {
     struct termios newSettings;
@@ -78,29 +90,108 @@ int getLength(const char text[]) {
 #include <sstream>
 
 void printHeader(const std::string &text) {
-    cout << BOLD << CYAN << text << RESET << endl;
+    if (colorsEnabled) cout << BOLD << CYAN << text << RESET << endl;
+    else cout << text << std::endl;
 }
 
 void printInfo(const std::string &text) {
-    cout << CYAN << text << RESET << endl;
+    if (colorsEnabled) cout << CYAN << text << RESET << endl;
+    else cout << text << std::endl;
 }
 
 void printLabelValue(const std::string &label, const std::string &value) {
-    cout << WHITE << label << RESET << GREEN << value << RESET << endl;
+    if (colorsEnabled) cout << WHITE << label << RESET << GREEN << value << RESET << endl;
+    else cout << label << value << std::endl;
+}
+
+void printLabelValueColored(const std::string &label, const std::string &value, const std::string &valueColor) {
+    if (colorsEnabled) cout << WHITE << label << RESET << valueColor << value << RESET << endl;
+    else cout << label << value << std::endl;
 }
 
 void printSuccess(const std::string &text) {
-    cout << GREEN << text << RESET << endl;
+    if (colorsEnabled) cout << GREEN << text << RESET << endl;
+    else cout << text << std::endl;
 }
 
 void printError(const std::string &text) {
-    cout << RED << text << RESET << endl;
+    if (colorsEnabled) cout << RED << text << RESET << endl;
+    else cout << text << std::endl;
 }
 
 void printPrompt(const std::string &text) {
-    cout << YELLOW << text << RESET;
+    if (colorsEnabled) cout << YELLOW << text << RESET;
+    else cout << text;
+    cout.flush();
 }
 
 void printSeparator() {
     cout << GRAY << "----------------------------------------" << RESET << endl;
+}
+
+// Read password from terminal and display '*' for each character typed.
+// Handles backspace (127) and Enter. Returns the entered password (no newline).
+std::string readPasswordMasked() {
+    std::string password;
+    
+#ifdef _WIN32
+    // Windows fallback using conio
+    #include <conio.h>
+    char ch;
+    while (true) {
+        ch = _getch();
+        if (ch == '\r' || ch == '\n') break;
+        if (ch == 8) { // backspace
+            if (!password.empty()) {
+                password.pop_back();
+                // Erase star
+                std::cout << "\b \b";
+            }
+            continue;
+        }
+        password.push_back(ch);
+        std::cout << '*';
+    }
+    std::cout << std::endl;
+    return password;
+#else
+    struct termios oldt, newt;
+
+    // Get current terminal settings
+    if (tcgetattr(STDIN_FILENO, &oldt) != 0) {
+        return "";
+    }
+
+    newt = oldt;
+    // Turn off echo
+    newt.c_lflag &= ~(ECHO);
+    // Set the new attributes
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    char ch;
+    while (true) {
+        ssize_t n = read(STDIN_FILENO, &ch, 1);
+        if (n <= 0) continue;
+        if (ch == '\n' || ch == '\r') {
+            break;
+        }
+        if (ch == 127 || ch == '\b') { // backspace
+            if (!password.empty()) {
+                password.pop_back();
+                // Erase a star from screen
+                std::cout << "\b \b";
+                std::cout.flush();
+            }
+            continue;
+        }
+        password.push_back(ch);
+        std::cout << '*';
+        std::cout.flush();
+    }
+
+    // Restore terminal
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    std::cout << std::endl;
+    return password;
+#endif
 }

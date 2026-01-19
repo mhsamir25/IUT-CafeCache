@@ -53,9 +53,9 @@ void RechargeRequest::display() const {
     if (status == "PENDING") statusColor = YELLOW;
     else if (status == "APPROVED") statusColor = GREEN;
     else if (status == "REJECTED") statusColor = RED;
-    cout << "Status: " << statusColor << status << RESET << endl;
-    cout << "Time: " << ctime(&t);
-    cout << "----------------------------------------" << endl;
+    printLabelValueColored("Status: ", status, statusColor);
+    printLabelValue("Time: ", string(ctime(&t)));
+    printSeparator();
 }
 
 // RechargeList implementation
@@ -98,11 +98,10 @@ RechargeRequest* RechargeList::findRequest(string requestId) {
 
 void RechargeList::displayAllRequests() const {
     if (head == nullptr) {
-        cout << GRAY << "\nNo recharge requests found.\n" << RESET << endl;
+        printInfo("\nNo recharge requests found.");
         return;
     }
-    
-    cout << BOLD << CYAN << "\n========== ALL RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
+    printHeader("\n========== ALL RECHARGE REQUESTS ==========");
     RechargeNode* current = head;
     while (current != nullptr) {
         current->request.display();
@@ -112,7 +111,7 @@ void RechargeList::displayAllRequests() const {
 
 void RechargeList::displayUserRequests(string userId) const {
     bool found = false;
-    cout << BOLD << CYAN << "\n========== YOUR RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
+    printHeader("\n========== YOUR RECHARGE REQUESTS ==========");
     
     RechargeNode* current = head;
     while (current != nullptr) {
@@ -124,13 +123,13 @@ void RechargeList::displayUserRequests(string userId) const {
     }
     
     if (!found) {
-        cout << GREEN << "No recharge requests found.\n" << RESET << endl;
+        printInfo("No recharge requests found.");
     }
 }
 
 void RechargeList::displayPendingRequests() const {
     bool found = false;
-    cout << BOLD << CYAN << "\n========== PENDING RECHARGE REQUESTS ==========" << RESET << "\n" << endl;
+    printHeader("\n========== PENDING RECHARGE REQUESTS ==========");
     
     RechargeNode* current = head;
     while (current != nullptr) {
@@ -142,7 +141,7 @@ void RechargeList::displayPendingRequests() const {
     }
     
     if (!found) {
-        cout << GREEN << "No pending recharge requests.\n" << RESET << endl;
+        printInfo("No pending recharge requests.");
     }
 }
 
