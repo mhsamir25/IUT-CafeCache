@@ -50,6 +50,15 @@ void RechargeManager::viewPendingRequests() {
     list.displayPendingRequests();
 }
 
+vector<RechargeRequest> RechargeManager::getPendingRequests() {
+    vector<RechargeRequest> allRequests = FileManager::loadRechargeRequests();
+    vector<RechargeRequest> pending;
+    for (const auto &req : allRequests) {
+        if (req.getStatus() == "PENDING") pending.push_back(req);
+    }
+    return pending;
+}
+
 bool RechargeManager::approveRequest(string requestId) {
     vector<RechargeRequest> requests = FileManager::loadRechargeRequests();
     bool found = false;

@@ -2,6 +2,7 @@
 #define RECHARGEMANAGER_H
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -10,6 +11,8 @@ public:
     static bool submitRechargeRequest(string userId, double amount);
     static void viewUserRequests(string userId);
     static void viewPendingRequests();
+    // New helper: return pending requests so callers (admin UI) can show a numbered list
+    static vector<class RechargeRequest> getPendingRequests();
     static bool approveRequest(string requestId);
     static bool rejectRequest(string requestId);
 };

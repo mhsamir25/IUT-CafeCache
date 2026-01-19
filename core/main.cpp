@@ -6,6 +6,7 @@
 #include "AuthManager.h"
 #include "FileManager.h"
 #include "RechargeManager.h"
+#include "RechargeRequest.h"
 #include "Token.h"
 #include "TokenGenerator.h"
 #include "TerminalSetup.h"
@@ -534,26 +535,52 @@ void viewPendingRecharges() {
 // Process recharge request
 void processRechargeRequest() {
     clearScreen();
-    RechargeManager::viewPendingRequests();
-    
-    string requestId;
-    printPrompt("\nEnter Request ID to process (or 0 to cancel): ");
-    cin >> requestId;
-    
-    if (requestId == "0") {
+    // Show pending requests with an index so admin can choose by number (no more pasting long IDs)
+    vector<RechargeRequest> pending = RechargeManager::getPendingRequests();
+
+    if (pending.empty()) {
+        printInfo("\nNo pending recharge requests.");
+        pauseScreen();
         return;
     }
-    
+
+    printHeader("\n========== PENDING RECHARGE REQUESTS (Select by No) ==========");
+    // Print a compact numbered list: No | ShortID | UserID | Amount | Time
+    cout << "No  " << "ShortID" << "    " << "UserID" << "    " << "Amount" << "\n";
+    cout << string(60, '-') << "\n";
+    for (size_t i = 0; i < pending.size(); ++i) {
+        string fullId = pending[i].getRequestId();
+        string shortId = fullId.substr(0, std::min((size_t)8, fullId.size()));
+        // format amount
+        std::ostringstream amt; amt << fixed << setprecision(2) << pending[i].getAmount();
+        cout << left << setw(3) << (to_string(i+1) + ".") << setw(12) << shortId << setw(12) << pending[i].getUserId() << setw(12) << ("BDT " + amt.str()) << "\n";
+    }
+
+    int choiceIndex = -1;
+    printPrompt("\nEnter request number to process (0 to cancel): ");
+    cin >> choiceIndex;
+
+    if (choiceIndex == 0) return;
+    if (choiceIndex < 1 || choiceIndex > (int)pending.size()) {
+        printError("\n✗ Invalid selection.");
+        pauseScreen();
+        return;
+    }
+
+    // Map selection to full request id
+    string selectedRequestId = pending[choiceIndex - 1].getRequestId();
+
+    // Confirm
     char decision;
     printPrompt("Approve this request? (y/n): ");
     cin >> decision;
-    
+
     if (decision == 'y' || decision == 'Y') {
-        RechargeManager::approveRequest(requestId);
+        RechargeManager::approveRequest(selectedRequestId);
     } else {
-        RechargeManager::rejectRequest(requestId);
+        RechargeManager::rejectRequest(selectedRequestId);
     }
-    
+
     pauseScreen();
 }
 
