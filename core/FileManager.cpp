@@ -15,7 +15,6 @@ vector<User> FileManager::loadUsers() {
     ifstream file(USERS_FILE);
     
     if (!file.is_open()) {
-        // Create default admin if file doesn't exist
         User admin("ADMIN001", "admin123", "System Admin", "ADMIN", 0.0);
         users.push_back(admin);
         saveUsers(users);
@@ -31,7 +30,7 @@ vector<User> FileManager::loadUsers() {
     
     file.close();
     
-    // Ensure at least one admin exists
+
     if (users.empty()) {
         User admin("ADMIN001", "admin123", "System Admin", "ADMIN", 0.0);
         users.push_back(admin);
@@ -147,7 +146,7 @@ bool FileManager::addRechargeRequest(const RechargeRequest& request) {
     return true;
 }
 
-// Token operations
+
 vector<Token> FileManager::loadTokens() {
     vector<Token> tokens;
     ifstream file(TOKENS_FILE);
@@ -199,7 +198,7 @@ bool FileManager::addToken(const Token& token) {
     vector<Token> FileManager::getUserTokens(const std::string& userId) {
     vector<Token> matched;
 
-    // Assumes FileManager::loadTokens() exists and returns all tokens from tokens.txt
+
     vector<Token> allTokens = FileManager::loadTokens();
 
     for (const auto &t : allTokens) {

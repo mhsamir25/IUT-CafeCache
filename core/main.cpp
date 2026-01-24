@@ -239,52 +239,54 @@ void generateOrderToken() {
             return;
         }
 
-        // Define simple weekday Bangladeshi menus (examples)
-        // For clarity we hardcode some items; these can be moved to a file later.
-        struct MenuItem { string name; double price; };
+        // Define weekday menus: only item names vary per day/meal while prices are fixed per meal type
+        // Breakfast price = 40, Lunch price = 70, Dinner price = 70
+        vector<string> menuItems;
+        double itemPrice = 0.0;
 
-        vector<MenuItem> menuItems;
+        if (mealChoice == 1) itemPrice = 40.0; // Breakfast
+        else itemPrice = 70.0; // Lunch or Dinner
 
-        // Provide different menus per day and meal
+        // Provide different item names per day and meal (prices are uniform per meal type)
         if (selectedDay == "Monday") {
             if (mealChoice == 1) { // Breakfast
-                menuItems = { {"Paratha & Begun Bhaja", 25}, {"Luchi & Dim", 30}, {"Tea", 10} };
+                menuItems = { "Paratha & Begun Bhaja", "Luchi & Dim", "Tea" };
             } else if (mealChoice == 2) { // Lunch
-                menuItems = { {"Rice & Chicken Curry", 80}, {"Daal & Vegetable", 50}, {"Salad", 20} };
+                menuItems = { "Rice & Chicken Curry", "Daal & Vegetable", "Salad" };
             } else { // Dinner
-                menuItems = { {"Khichuri", 70}, {"Fried Fish", 90}, {"Panta Ilish (small)", 120} };
+                menuItems = { "Khichuri", "Fried Fish", "Panta Ilish (small)" };
             }
         } else if (selectedDay == "Tuesday") {
             if (mealChoice == 1) {
-                menuItems = { {"Panta Bhaat & Bhorta", 35}, {"Ruti & Omelette", 30}, {"Tea", 10} };
+                menuItems = { "Panta Bhaat & Bhorta", "Ruti & Omelette", "Tea" };
             } else if (mealChoice == 2) {
-                menuItems = { {"Rice & Beef Curry", 100}, {"Shorshe Ilish (small)", 140}, {"Mix Veg", 45} };
+                menuItems = { "Rice & Beef Curry", "Shorshe Ilish (small)", "Mix Veg" };
             } else {
-                menuItems = { {"Biryani (chicken)", 120}, {"Raita", 20}, {"Kebab", 90} };
+                menuItems = { "Biryani (chicken)", "Raita", "Kebab" };
             }
         } else if (selectedDay == "Wednesday") {
             if (mealChoice == 1) {
-                menuItems = { {"Shemai", 40}, {"Chirer Pulao", 35}, {"Tea", 10} };
+                menuItems = { "Shemai", "Chirer Pulao", "Tea" };
             } else if (mealChoice == 2) {
-                menuItems = { {"Rice & Fish Curry", 90}, {"Daal", 40}, {"Vegetable Bhaji", 35} };
+                menuItems = { "Rice & Fish Curry", "Daal", "Vegetable Bhaji" };
             } else {
-                menuItems = { {"Kacchi Biryani (small)", 150}, {"Salad", 20}, {"Papad", 10} };
+                menuItems = { "Kacchi Biryani (small)", "Salad", "Papad" };
             }
         } else if (selectedDay == "Thursday") {
             if (mealChoice == 1) {
-                menuItems = { {"Ruti & Chana", 30}, {"Egg Roll", 50}, {"Tea", 10} };
+                menuItems = { "Ruti & Chana", "Egg Roll", "Tea" };
             } else if (mealChoice == 2) {
-                menuItems = { {"Rice & Chicken Roast", 95}, {"Mixed Daal", 40}, {"Aloor Dom", 45} };
+                menuItems = { "Rice & Chicken Roast", "Mixed Daal", "Aloor Dom" };
             } else {
-                menuItems = { {"Morog Polao (small)", 130}, {"Salad", 20}, {"Fried Veg", 35} };
+                menuItems = { "Morog Polao (small)", "Salad", "Fried Veg" };
             }
         } else { // Friday
             if (mealChoice == 1) {
-                menuItems = { {"Luchi & Aloor Dum", 35}, {"Chana Puri", 30}, {"Tea", 10} };
+                menuItems = { "Luchi & Aloor Dum", "Chana Puri", "Tea" };
             } else if (mealChoice == 2) {
-                menuItems = { {"Rice & Mutton Curry (small)", 150}, {"Daal", 40}, {"Green Veg", 45} };
+                menuItems = { "Rice & Mutton Curry (small)", "Daal", "Green Veg" };
             } else {
-                menuItems = { {"Pulao & Chicken", 110}, {"Korma (small)", 80}, {"Raita", 20} };
+                menuItems = { "Pulao & Chicken", "Korma (small)", "Raita" };
             }
         }
 
@@ -292,47 +294,50 @@ void generateOrderToken() {
     string mealLabel = (mealChoice == 1) ? "Breakfast" : (mealChoice == 2 ? "Lunch" : "Dinner");
     printHeader("\nMenu for " + selectedDay + " - " + mealLabel + "\n");
 
-            // Print menu items in a table: No | ITEM (30) | PRICE
-            cout << BOLD << WHITE << left << setw(4) << "No" << setw(40) << "ITEM" << setw(12) << "PRICE" << RESET << endl;
-            cout << GRAY << string(56, '-') << RESET << endl;
-            for (size_t i = 0; i < menuItems.size(); ++i) {
-                std::ostringstream priceSs; priceSs << "BDT " << fixed << setprecision(2) << menuItems[i].price;
-                cout << WHITE << left << setw(4) << (to_string(i+1) + ".") << setw(40) << menuItems[i].name << setw(12) << priceSs.str() << RESET << endl;
+            // Show uniform price once above the menu (package price per plate)
+            {
+                std::ostringstream priceHdr; priceHdr << fixed << setprecision(2) << itemPrice;
+                printLabelValue("Price: ", string("BDT ") + priceHdr.str());
             }
-            printInfo("0. Finish order / Go back");
 
-        // Create token and let user add multiple items
+            // Print menu items in a table: No | ITEM (prices shown above as package price)
+            cout << BOLD << WHITE << left << setw(4) << "No" << setw(40) << "ITEM" << RESET << endl;
+            cout << GRAY << string(44, '-') << RESET << endl;
+            for (size_t i = 0; i < menuItems.size(); ++i) {
+                cout << WHITE << left << setw(4) << (to_string(i+1) + ".") << setw(40) << menuItems[i] << RESET << endl;
+            }
+            printInfo("\nOptions:");
+            printInfo("1. Place order for this package");
+            printInfo("2. Cancel / Go back");
+
+        // Create token and add the whole package as a single item if confirmed
         string tokenId = TokenGenerator::generateTokenId();
         Token token(tokenId, currentUser->getUserID());
 
-        while (true) {
-            printPrompt("\nSelect item number to add (0 to finish): ");
-            int itemChoice;
-            cin >> itemChoice;
+        // Prepare a package name and show confirmation
+        string packageName = selectedDay + " " + mealLabel + " Package";
 
-            if (itemChoice == 0) break;
-            if (itemChoice < 1 || itemChoice > (int)menuItems.size()) {
-                printError("Invalid item selection.");
-                continue;
-            }
+        int opt = 0;
+        printPrompt("\nEnter option (1 to place order, 2 to cancel): ");
+        cin >> opt;
 
-            int quantity;
-            printPrompt("Enter quantity: ");
-            cin >> quantity;
-            if (quantity <= 0) {
-                printError("Quantity must be at least 1.");
-                continue;
-            }
-
-            token.addItem(menuItems[itemChoice-1].name, quantity, menuItems[itemChoice-1].price);
-            printSuccess("✓ Added: " + menuItems[itemChoice-1].name + " x" + to_string(quantity));
-        }
-
-        if (token.getTotalAmount() == 0) {
-            printError("\n✗ No items selected. Order cancelled.");
+        if (opt != 1) {
+            printInfo("\nOrder cancelled.");
             pauseScreen();
             return;
         }
+
+        int quantity = 1;
+        printPrompt("Enter quantity (number of plates, default 1): ");
+        cin >> quantity;
+        if (quantity <= 0) {
+            printError("Quantity must be at least 1. Order cancelled.");
+            pauseScreen();
+            return;
+        }
+
+        // Add package as single token item (packageName) with the uniform meal price
+        token.addItem(packageName, quantity, itemPrice);
 
         // Check wallet balance
             if (currentUser->getWalletBalance() < token.getTotalAmount()) {

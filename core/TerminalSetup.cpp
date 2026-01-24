@@ -4,14 +4,13 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/select.h>
-#include <unistd.h> // isatty
+#include <unistd.h> 
 
 using namespace std;
 
 
 struct termios originalSettings;
 
-// Colors enabled by default when stdout is a tty
 static bool colorsEnabled = isatty(STDOUT_FILENO);
 
 void setColorsEnabled(bool enabled) {
