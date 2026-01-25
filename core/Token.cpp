@@ -120,3 +120,19 @@ Token Token::fromFileString(const string& line) {
     
     return token;
 }
+
+pair<string, string> Token::extractDayAndMeal() const {
+    if (items.empty()) {
+        return {"", ""};
+    }
+    
+    string itemName = items[0].itemName;
+    
+    // Split by space
+    stringstream ss(itemName);
+    string day = "", meal = "";
+    
+    ss >> day >> meal;  // Get first two words
+    
+    return {day, meal};
+}

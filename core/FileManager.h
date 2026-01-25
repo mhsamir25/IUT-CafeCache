@@ -6,6 +6,7 @@
 #include "User.h"
 #include "RechargeRequest.h"
 #include "Token.h"
+#include "Feedback.h"
 
 using namespace std;
 
@@ -14,6 +15,7 @@ private:
     static const string USERS_FILE;
     static const string RECHARGE_FILE;
     static const string TOKENS_FILE;
+    static const string FEEDBACK_FILE;
     
 public:
     // User operations
@@ -33,6 +35,11 @@ public:
     static bool saveTokens(const vector<Token>& tokens);
     static bool addToken(const Token& token);
     static vector<Token> getUserTokens(const string& userId);
+    
+    // Feedback operations
+    static vector<Feedback> loadFeedback();
+    static bool saveFeedback(const vector<Feedback>& feedbacks);
+    static bool addFeedback(const Feedback& feedback);
 };
 
 #endif

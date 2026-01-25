@@ -8,6 +8,7 @@ using namespace std;
 const string FileManager::USERS_FILE = "users.txt";
 const string FileManager::RECHARGE_FILE = "recharge_requests.txt";
 const string FileManager::TOKENS_FILE = "tokens.txt";
+const string FileManager::FEEDBACK_FILE = "feedback.txt";
 
 // User operations
 vector<User> FileManager::loadUsers() {
@@ -208,4 +209,53 @@ bool FileManager::addToken(const Token& token) {
     }
 
     return matched;
+}
+
+// Feedback operations
+vector<Feedback> FileManager::loadFeedback() {
+    vector<Feedback> feedbacks;
+    ifstream file(FEEDBACK_FILE);
+    
+    if (!file.is_open()) {
+        return feedbacks;
+    }
+    
+    string line;
+    while (getline(file, line)) {
+        if (!line.empty()) {
+            feedbacks.push_back(Feedback::fromFileString(line));
+        }
+    }
+    
+    file.close();
+    return feedbacks;
+}
+
+bool FileManager::saveFeedback(const vector<Feedback>& feedbacks) {
+    ofstream file(FEEDBACK_FILE);
+    
+    if (!file.is_open()) {
+        printError("Error: Could not open feedback file for writing.");
+        return false;
+    }
+    
+    for (const auto& fb : feedbacks) {
+        file << fb.toFileString() << endl;
+    }
+    
+    file.close();
+    return true;
+}
+
+bool FileManager::addFeedback(const Feedback& feedback) {
+    ofstream file(FEEDBACK_FILE, ios::app);
+    
+    if (!file.is_open()) {
+        printError("Error: Could not open feedback file.");
+        return false;
+    }
+    
+    file << feedback.toFileString() << endl;
+    file.close();
+    return true;
 }

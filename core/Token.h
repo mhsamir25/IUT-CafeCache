@@ -38,6 +38,9 @@ public:
     void displayToken() const;
     string toFileString() const;
     static Token fromFileString(const string& line);
+    
+    // Helper: Extract day and meal type from first item name (e.g., "Monday Breakfast Package" -> "Monday", "Breakfast")
+    pair<string, string> extractDayAndMeal() const;
 };
 
 #endif

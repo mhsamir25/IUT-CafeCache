@@ -10,6 +10,7 @@
 #include "Token.h"
 #include "TokenGenerator.h"
 #include "TerminalSetup.h"
+#include "FeedbackManager.h"
 
 using namespace std;
 
@@ -31,6 +32,46 @@ void viewPurchaseHistory();
 void viewPendingRecharges();
 void processRechargeRequest();
 void viewAllUsers();
+void submitFeedback();
+void viewAllMenuRatings();
+void viewFeedbackForDay();
+void viewDailyMenuRatings();
+void adminViewDailyMenuRatings();
+
+// Helper function to get food items for a given day and meal
+string getFoodItemsForMeal(const string& day, const string& meal) {
+    vector<string> menuItems;
+    
+    if (day == "Monday") {
+        if (meal == "Breakfast") menuItems = { "Paratha & Begun Bhaja", "Luchi & Dim", "Tea" };
+        else if (meal == "Lunch") menuItems = { "Rice & Chicken Curry", "Daal & Vegetable", "Salad" };
+        else menuItems = { "Khichuri", "Fried Fish", "Panta Ilish (small)" };
+    } else if (day == "Tuesday") {
+        if (meal == "Breakfast") menuItems = { "Panta Bhaat & Bhorta", "Ruti & Omelette", "Tea" };
+        else if (meal == "Lunch") menuItems = { "Rice & Beef Curry", "Shorshe Ilish (small)", "Mix Veg" };
+        else menuItems = { "Biryani (chicken)", "Raita", "Kebab" };
+    } else if (day == "Wednesday") {
+        if (meal == "Breakfast") menuItems = { "Shemai", "Chirer Pulao", "Tea" };
+        else if (meal == "Lunch") menuItems = { "Rice & Fish Curry", "Daal", "Vegetable Bhaji" };
+        else menuItems = { "Kacchi Biryani (small)", "Salad", "Papad" };
+    } else if (day == "Thursday") {
+        if (meal == "Breakfast") menuItems = { "Ruti & Chana", "Egg Roll", "Tea" };
+        else if (meal == "Lunch") menuItems = { "Rice & Chicken Roast", "Mixed Daal", "Aloor Dom" };
+        else menuItems = { "Morog Polao (small)", "Salad", "Fried Veg" };
+    } else if (day == "Friday") {
+        if (meal == "Breakfast") menuItems = { "Luchi & Aloor Dum", "Chana Puri", "Tea" };
+        else if (meal == "Lunch") menuItems = { "Rice & Mutton Curry (small)", "Daal", "Green Veg" };
+        else menuItems = { "Pulao & Chicken", "Korma (small)", "Raita" };
+    }
+    
+    // Join items with " | "
+    string result;
+    for (size_t i = 0; i < menuItems.size(); ++i) {
+        result += menuItems[i];
+        if (i < menuItems.size() - 1) result += " | ";
+    }
+    return result;
+}
 
 // Utility functions
 void clearScreen() {
@@ -77,7 +118,10 @@ void displayStudentMenu() {
     printInfo("3. View Recharge Request Status");
     printInfo("4. Place Order (Weekday Menu)");
     printInfo("5. View Purchase History");
-    printInfo("6. Logout");
+    printInfo("6. Submit Feedback for Your Orders");
+    printInfo("7. View Your Feedback History");
+    printInfo("8. View Daily Menu Ratings");
+    printInfo("9. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -93,7 +137,9 @@ void displayAdminMenu() {
     printInfo("\n1. View Pending Recharge Requests");
     printInfo("2. Process Recharge Request");
     printInfo("3. View All Users");
-    printInfo("4. Logout");
+    printInfo("4. View Menu Feedback & Ratings");
+    printInfo("5. View Daily Menu Ratings (By Day & Meal Type)");
+    printInfo("6. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -300,6 +346,17 @@ void generateOrderToken() {
                 printLabelValue("Price: ", string("BDT ") + priceHdr.str());
             }
 
+            // Show rating for this day's meal (if any feedback exists)
+            {
+                auto [avgRating, count] = FeedbackManager::getDayMealRating(selectedDay, mealLabel);
+                if (count > 0) {
+                    std::ostringstream ratingStr; ratingStr << fixed << setprecision(1) << avgRating;
+                    printLabelValue("Average Rating: ", ratingStr.str() + "/5.0 (" + to_string(count) + " ratings)");
+                } else {
+                    printInfo("Average Rating: No ratings yet");
+                }
+            }
+
             // Print menu items in a table: No | ITEM (prices shown above as package price)
             cout << BOLD << WHITE << left << setw(4) << "No" << setw(40) << "ITEM" << RESET << endl;
             cout << GRAY << string(44, '-') << RESET << endl;
@@ -404,6 +461,15 @@ void handleStudentOperations() {
                 viewPurchaseHistory();
                 break;
             case 6:
+                submitFeedback();
+                break;
+            case 7:
+                viewAllMenuRatings();
+                break;
+            case 8:
+                viewDailyMenuRatings();
+                break;
+            case 9:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -519,6 +585,12 @@ void handleAdminOperations() {
                 viewAllUsers();
                 break;
             case 4:
+                viewFeedbackForDay();
+                break;
+            case 5:
+                adminViewDailyMenuRatings();
+                break;
+            case 6:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -606,6 +678,267 @@ void viewAllUsers() {
     
     pauseScreen();
 }
+
+// Submit feedback for a day's menu
+void submitFeedback() {
+    clearScreen();
+    User* currentUser = AuthManager::getCurrentUser();
+    
+    printHeader("\n========== SUBMIT FEEDBACK FOR YOUR ORDERS ==========");
+    printLabelValue("User: ", currentUser->getName());
+    
+    // Get all tokens for this user
+    vector<Token> userTokens = FileManager::getUserTokens(currentUser->getUserID());
+    
+    if (userTokens.empty()) {
+        printInfo("\nYou have no orders yet. Please place an order first before submitting feedback.");
+        pauseScreen();
+        return;
+    }
+    
+    // Show orders without feedback
+    printInfo("\nYour Orders (without feedback):\n");
+    vector<Token> tokensWithoutFeedback;
+    int idx = 1;
+    
+    for (const auto& token : userTokens) {
+        if (!FeedbackManager::hasFeedbackForToken(currentUser->getUserID(), token.getTokenId())) {
+            tokensWithoutFeedback.push_back(token);
+            cout << to_string(idx) << ". Token ID: " << token.getTokenId().substr(0, 8) << " | Amount: BDT " << token.getTotalAmount() << endl;
+            idx++;
+        }
+    }
+    
+    if (tokensWithoutFeedback.empty()) {
+        printInfo("\nYou have already submitted feedback for all your orders. Thank you!");
+        pauseScreen();
+        return;
+    }
+    
+    printInfo("0. Cancel");
+    
+    int orderChoice;
+    printPrompt("\nSelect an order to give feedback (enter number): ");
+    cin >> orderChoice;
+    
+    if (orderChoice == 0) return;
+    if (orderChoice < 1 || orderChoice > (int)tokensWithoutFeedback.size()) {
+        printError("\n✗ Invalid selection.");
+        pauseScreen();
+        return;
+    }
+    
+    Token selectedToken = tokensWithoutFeedback[orderChoice - 1];
+    string selectedTokenId = selectedToken.getTokenId();
+    
+    // Get rating (1-5)
+    int rating;
+    printPrompt("\nRate your order (1-5): ");
+    cin >> rating;
+    
+    if (rating < 1 || rating > 5) {
+        printError("\n✗ Invalid rating. Please enter a number between 1 and 5.");
+        pauseScreen();
+        return;
+    }
+    
+    // Get remark
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    string remark;
+    printPrompt("Write a comment about your order (max 200 characters): ");
+    getline(cin, remark);
+    
+    if (remark.empty()) {
+        printError("\n✗ Comment cannot be empty.");
+        pauseScreen();
+        return;
+    }
+    
+    // Submit feedback
+    if (FeedbackManager::submitFeedback(currentUser->getUserID(), selectedTokenId, rating, remark)) {
+        printSuccess("\n✓ Thank you! Feedback submitted successfully!");
+        printLabelValue("Token ID: ", selectedTokenId);
+        printLabelValue("Rating: ", to_string(rating) + "/5");
+        printLabelValue("Comment: ", remark);
+    } else {
+        printError("\n✗ Failed to submit feedback. Please try again.");
+    }
+    
+    pauseScreen();
+}
+
+// View all feedback user has submitted
+void viewAllMenuRatings() {
+    clearScreen();
+    User* currentUser = AuthManager::getCurrentUser();
+    
+    printHeader("\n========== YOUR FEEDBACK HISTORY ==========");
+    printLabelValue("User: ", currentUser->getName());
+    
+    vector<Feedback> userFeedbacks = FeedbackManager::getUserFeedback(currentUser->getUserID());
+    
+    if (userFeedbacks.empty()) {
+        printInfo("\nYou have not submitted any feedback yet.");
+        pauseScreen();
+        return;
+    }
+    
+    printInfo("\nYour Submitted Feedback:\n");
+    
+    for (size_t i = 0; i < userFeedbacks.size(); ++i) {
+        cout << BOLD << CYAN << "Feedback #" << (i+1) << ":" << RESET << endl;
+        printLabelValue("Token ID: ", userFeedbacks[i].getTokenId().substr(0, 8));
+        printLabelValue("Rating: ", to_string(userFeedbacks[i].getRating()) + "/5");
+        printLabelValue("Comment: ", userFeedbacks[i].getRemark());
+        time_t t = userFeedbacks[i].getTimestamp();
+        printLabelValue("Submitted: ", string(ctime(&t)));
+        printSeparator();
+    }
+    
+    pauseScreen();
+}
+
+// View daily menu ratings for all days and meals
+void viewDailyMenuRatings() {
+    clearScreen();
+    User* currentUser = AuthManager::getCurrentUser();
+    
+    printHeader("\n========== DAILY MENU RATINGS & REVIEWS ==========");
+    printLabelValue("User: ", currentUser->getName());
+    
+    vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+    vector<string> meals = {"Breakfast", "Lunch", "Dinner"};
+    
+    printInfo("\nMenu Ratings Across All Days and Meals:\n");
+    
+    // Print table header
+    cout << BOLD << WHITE;
+    cout << left << setw(15) << "Day" 
+         << left << setw(12) << "Meal Type" 
+         << left << setw(45) << "Food Items" 
+         << left << setw(20) << "Rating" << RESET << endl;
+    cout << string(92, '-') << endl;
+    
+    for (const auto& day : days) {
+        for (size_t i = 0; i < meals.size(); ++i) {
+            const auto& meal = meals[i];
+            auto [avgRating, count] = FeedbackManager::getDayMealRating(day, meal);
+            string foodItems = getFoodItemsForMeal(day, meal);
+            
+            // Truncate food items if too long
+            if (foodItems.length() > 42) {
+                foodItems = foodItems.substr(0, 42) + "...";
+            }
+            
+            ostringstream ratingStr;
+            if (count > 0) {
+                ratingStr << fixed << setprecision(1) << avgRating << "/5.0 (" << count << ")";
+            } else {
+                ratingStr << "No ratings";
+            }
+            
+            // Print day only on first meal row
+            if (i == 0) {
+                cout << BOLD << YELLOW << left << setw(15) << day << RESET
+                     << left << setw(12) << meal
+                     << left << setw(45) << foodItems
+                     << left << setw(20) << ratingStr.str() << endl;
+            } else {
+                cout << left << setw(15) << ""
+                     << left << setw(12) << meal
+                     << left << setw(45) << foodItems
+                     << left << setw(20) << ratingStr.str() << endl;
+            }
+        }
+        cout << endl;
+    }
+    
+    pauseScreen();
+}
+
+// Admin: View feedback for all orders
+void viewFeedbackForDay() {
+    clearScreen();
+    
+    printHeader("\n========== ADMIN: ORDER FEEDBACK & RATINGS ==========");
+    
+    vector<Token> allTokens = FileManager::loadTokens();
+    vector<Feedback> allFeedbacks = FileManager::loadFeedback();
+    
+    if (allFeedbacks.empty()) {
+        printInfo("\nNo feedback submitted yet.");
+        pauseScreen();
+        return;
+    }
+    
+    // Group feedbacks by token
+    printInfo("\nAll Order Feedback:\n");
+    
+    for (const auto& token : allTokens) {
+        vector<Feedback> tokenFeedbacks = FeedbackManager::getFeedbackForToken(token.getTokenId());
+        
+        if (!tokenFeedbacks.empty()) {
+            cout << BOLD << CYAN << "Token: " << token.getTokenId().substr(0, 8) << " | User: " << token.getUserId() << RESET << endl;
+            printLabelValue("Total Amount: ", "BDT " + to_string(token.getTotalAmount()));
+            
+            for (size_t i = 0; i < tokenFeedbacks.size(); ++i) {
+                cout << "  Feedback:" << endl;
+                cout << "    Rating: " << tokenFeedbacks[i].getRating() << "/5" << endl;
+                cout << "    Comment: " << tokenFeedbacks[i].getRemark() << endl;
+            }
+            
+            printSeparator();
+        }
+    }
+    
+    pauseScreen();
+}
+
+// Admin: View daily menu ratings by day and meal type
+void adminViewDailyMenuRatings() {
+    clearScreen();
+    
+    printHeader("\n========== ADMIN: DAILY MENU RATINGS ANALYSIS ==========");
+    printInfo("Assessment of food quality by day and meal type\n");
+    
+    vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+    vector<string> meals = {"Breakfast", "Lunch", "Dinner"};
+    
+    // Print header for table
+    cout << left << setw(12) << "Day" << setw(15) << "Breakfast" << setw(15) << "Lunch" << setw(15) << "Dinner" << endl;
+    cout << string(57, '-') << endl;
+    
+    for (const auto& day : days) {
+        cout << left << setw(12) << day;
+        
+        for (const auto& meal : meals) {
+            auto [avgRating, count] = FeedbackManager::getDayMealRating(day, meal);
+            
+            ostringstream ratingStr;
+            if (count > 0) {
+                ratingStr << fixed << setprecision(1) << avgRating << "/5.0 (" << count << ")";
+            } else {
+                ratingStr << "No ratings";
+            }
+            
+            cout << left << setw(15) << ratingStr.str();
+        }
+        
+        cout << endl;
+    }
+    
+    cout << endl;
+    printInfo("\nInterpretation:");
+    printInfo("  >= 4.5: Excellent - Keep the current food quality");
+    printInfo("  4.0-4.4: Good - Minor improvements needed");
+    printInfo("  3.5-3.9: Fair - Consider menu changes");
+    printInfo("  < 3.5: Poor - Urgent menu revision needed");
+    printInfo("  (N) = Number of user ratings for that meal");
+    
+    pauseScreen();
+}
+
+// Admin: View feedback and remarks for a specific day - DEPRECATED
 
 int main() {
     int choice;
