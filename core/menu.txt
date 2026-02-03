@@ -1,0 +1,21 @@
+Monday Breakfast Package|Ruti,Omelette,Salad
+Monday Lunch Package|Rice,Daal,Chicken Curry,Salad
+Monday Dinner Package|Biryani,Raita,Salad
+Tuesday Breakfast Package|Puri,Aloo Bhaaji,Salad
+Tuesday Lunch Package|Rice,Dal Mash,Fish Fry,Salad
+Tuesday Dinner Package|Polao,Mutton Curry,Raita,Salad
+Wednesday Breakfast Package|Porota,Beef Curry,Pickle
+Wednesday Lunch Package|Rice,Khichuri,Egg Curry,Salad
+Wednesday Dinner Package|Biryani,Meat Curry,Raita,Salad
+Thursday Breakfast Package|Doi Puri,Jilapi,Salad
+Thursday Lunch Package|Rice,Lentil Soup,Chicken Roast,Salad
+Thursday Dinner Package|Morog Polao,Salad,Raita
+Friday Breakfast Package|Paratha,Fried Egg,Salad
+Friday Lunch Package|Rice,Mixed Vegetables,Fish Curry,Salad
+Friday Dinner Package|Naan,Paneer Tikka,Raita,Salad
+Saturday Breakfast Package|Halim,Pickled Onion,Salad
+Saturday Lunch Package|Biryani,Raita,Salad
+Saturday Dinner Package|Khichuri,Egg Curry,Salad
+Sunday Breakfast Package|Sheermai,Date Chutney,Salad
+Sunday Lunch Package|Rice,Beef Curry,Daal,Salad
+Sunday Dinner Package|Polao,Mutton Curry,Salad

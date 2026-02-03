@@ -9,6 +9,7 @@ const string FileManager::USERS_FILE = "users.txt";
 const string FileManager::RECHARGE_FILE = "recharge_requests.txt";
 const string FileManager::TOKENS_FILE = "tokens.txt";
 const string FileManager::FEEDBACK_FILE = "feedback.txt";
+const string FileManager::MENU_FILE = "menu.txt";
 
 // User operations
 vector<User> FileManager::loadUsers() {
@@ -258,4 +259,34 @@ bool FileManager::addFeedback(const Feedback& feedback) {
     file << feedback.toFileString() << endl;
     file.close();
     return true;
+}
+
+string FileManager::getFoodItemsFromPackage(const string& packageName) {
+    ifstream file(MENU_FILE);
+    
+    if (!file.is_open()) {
+        return "N/A";
+    }
+    
+    string line;
+    while (getline(file, line)) {
+        if (!line.empty()) {
+            size_t pipePos = line.find('|');
+            if (pipePos != string::npos) {
+                string storedPackage = line.substr(0, pipePos);
+                if (storedPackage == packageName) {
+                    string foodItems = line.substr(pipePos + 1);
+                    // Return only the first food item
+                    size_t commaPos = foodItems.find(',');
+                    if (commaPos != string::npos) {
+                        return foodItems.substr(0, commaPos);
+                    }
+                    return foodItems;
+                }
+            }
+        }
+    }
+    
+    file.close();
+    return "N/A";
 }

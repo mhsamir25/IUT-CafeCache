@@ -128,3 +128,42 @@ vector<Feedback> FeedbackManager::getFeedbackForDayMeal(string dayOfWeek, string
     
     return dayMealFeedbacks;
 }
+vector<pair<Feedback, Token>> FeedbackManager::getUserFeedbackHistory(string userId) {
+    vector<Feedback> allFeedbacks = FileManager::loadFeedback();
+    vector<Token> allTokens = FileManager::loadTokens();
+    vector<pair<Feedback, Token>> userFeedbackHistory;
+    
+    for (const auto& feedback : allFeedbacks) {
+        if (feedback.getUserId() == userId) {
+            // Find corresponding token
+            for (const auto& token : allTokens) {
+                if (token.getTokenId() == feedback.getTokenId()) {
+                    userFeedbackHistory.push_back({feedback, token});
+                    break;
+                }
+            }
+        }
+    }
+    
+    return userFeedbackHistory;
+}
+
+vector<tuple<Feedback, Token, string>> FeedbackManager::getAllFeedbackHistory() {
+    vector<Feedback> allFeedbacks = FileManager::loadFeedback();
+    vector<Token> allTokens = FileManager::loadTokens();
+    vector<tuple<Feedback, Token, string>> allFeedbackHistory;
+    
+    for (const auto& feedback : allFeedbacks) {
+        // Find corresponding token
+        for (const auto& token : allTokens) {
+            if (token.getTokenId() == feedback.getTokenId()) {
+                auto [day, meal] = token.extractDayAndMeal();
+                string dayMeal = day + " " + meal;
+                allFeedbackHistory.push_back({feedback, token, dayMeal});
+                break;
+            }
+        }
+    }
+    
+    return allFeedbackHistory;
+}

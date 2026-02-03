@@ -28,6 +28,7 @@ string Token::getUserId() const { return userId; }
 double Token::getTotalAmount() const { return totalAmount; }
 time_t Token::getTimestamp() const { return timestamp; }
 string Token::getStatus() const { return status; }
+vector<OrderItem> Token::getItems() const { return items; }
 
 void Token::setStatus(string newStatus) { status = newStatus; }
 

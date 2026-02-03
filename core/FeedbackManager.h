@@ -3,7 +3,9 @@
 
 #include <string>
 #include <vector>
+#include <tuple>
 #include "Feedback.h"
+#include "Token.h"
 
 using namespace std;
 
@@ -29,6 +31,12 @@ public:
     
     // NEW: Get all feedback for a specific day's meal
     static vector<Feedback> getFeedbackForDayMeal(string dayOfWeek, string mealType);
+    
+    // Get user's feedback history with paired tokens
+    static vector<pair<Feedback, Token>> getUserFeedbackHistory(string userId);
+    
+    // Get all feedback history with paired tokens and day/meal info
+    static vector<tuple<Feedback, Token, string>> getAllFeedbackHistory();
 };
 
 #endif

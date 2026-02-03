@@ -16,6 +16,7 @@ private:
     static const string RECHARGE_FILE;
     static const string TOKENS_FILE;
     static const string FEEDBACK_FILE;
+    static const string MENU_FILE;
     
 public:
     // User operations
@@ -40,6 +41,9 @@ public:
     static vector<Feedback> loadFeedback();
     static bool saveFeedback(const vector<Feedback>& feedbacks);
     static bool addFeedback(const Feedback& feedback);
+    
+    // Menu operations - extract food items from package name
+    static string getFoodItemsFromPackage(const string& packageName);
 };
 
 #endif

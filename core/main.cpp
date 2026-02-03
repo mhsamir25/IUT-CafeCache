@@ -37,6 +37,8 @@ void viewAllMenuRatings();
 void viewFeedbackForDay();
 void viewDailyMenuRatings();
 void adminViewDailyMenuRatings();
+void viewUserFeedbackHistory();
+void viewAdminFeedbackHistory();
 
 // Helper function to get food items for a given day and meal
 string getFoodItemsForMeal(const string& day, const string& meal) {
@@ -138,8 +140,9 @@ void displayAdminMenu() {
     printInfo("2. Process Recharge Request");
     printInfo("3. View All Users");
     printInfo("4. View Menu Feedback & Ratings");
-    printInfo("5. View Daily Menu Ratings (By Day & Meal Type)");
-    printInfo("6. Logout");
+    printInfo("5. View Detailed Feedback History");
+    printInfo("6. View Daily Menu Ratings (By Day & Meal Type)");
+    printInfo("7. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -464,7 +467,7 @@ void handleStudentOperations() {
                 submitFeedback();
                 break;
             case 7:
-                viewAllMenuRatings();
+                viewUserFeedbackHistory();
                 break;
             case 8:
                 viewDailyMenuRatings();
@@ -588,9 +591,12 @@ void handleAdminOperations() {
                 viewFeedbackForDay();
                 break;
             case 5:
-                adminViewDailyMenuRatings();
+                viewAdminFeedbackHistory();
                 break;
             case 6:
+                adminViewDailyMenuRatings();
+                break;
+            case 7:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -964,6 +970,207 @@ int main() {
                 pauseScreen();
         }
     }
+}
 
-    return 0;
+// View user's feedback history
+void viewUserFeedbackHistory() {
+    clearScreen();
+    User* currentUser = AuthManager::getCurrentUser();
+    auto userFeedbackHistory = FeedbackManager::getUserFeedbackHistory(currentUser->getUserID());
+    
+    printHeader("\n========== YOUR FEEDBACK HISTORY (DETAILED) ==========");
+    printLabelValue("User: ", currentUser->getName());
+    printLabelValue("User ID: ", currentUser->getUserID());
+    printInfo("\nYour Feedback History:\n");
+    
+    // Print table header
+    cout << BOLD << WHITE;
+    cout << left << setw(5) << "No."
+         << left << setw(8) << "Token#"
+         << left << setw(16) << "Food Item"
+         << left << setw(18) << "Day & Meal"
+         << left << setw(8) << "Rating"
+         << left << setw(28) << "Your Comment" << RESET << endl;
+    cout << string(83, '-') << endl;
+    
+    int count = 1;
+    for (const auto& [feedback, token] : userFeedbackHistory) {
+        auto [day, meal] = token.extractDayAndMeal();
+        string dayMeal = day + " " + meal;
+        string remark = feedback.getRemark();
+        string tokenId = feedback.getTokenId();
+        
+        // Extract last 3 digits of token
+        string tokenNum = tokenId;
+        if (tokenNum.find("TKN") == 0) {
+            tokenNum = tokenNum.substr(3);
+        }
+        if (tokenNum.length() >= 3) {
+            tokenNum = tokenNum.substr(tokenNum.length() - 3);
+        }
+        
+        // Get food item from menu based on package name
+        string packageName = token.getItems()[0].itemName;
+        string foodItem = FileManager::getFoodItemsFromPackage(packageName);
+        
+        // If menu lookup failed, extract from token items
+        if (foodItem == "N/A") {
+            auto items = token.getItems();
+            if (items.size() > 1) {
+                foodItem = items[1].itemName;
+            } else if (items.size() > 0) {
+                foodItem = items[0].itemName;
+            }
+        }
+        
+        // Clean up and extract first word
+        while (!foodItem.empty() && foodItem[0] == ' ') foodItem = foodItem.substr(1);
+        while (!foodItem.empty() && foodItem.back() == ' ') foodItem.pop_back();
+        
+        size_t spacePos = foodItem.find(" ");
+        if (spacePos != string::npos) {
+            foodItem = foodItem.substr(0, spacePos);
+        }
+        
+        if (foodItem.length() > 12) {
+            foodItem = foodItem.substr(0, 10) + "...";
+        }
+        
+        // Truncate remark if too long
+        if (remark.length() > 25) {
+            remark = remark.substr(0, 25) + "...";
+        }
+        
+        cout << left << setw(5) << (to_string(count) + ".")
+             << left << setw(8) << tokenNum
+             << left << setw(16) << foodItem
+             << left << setw(18) << dayMeal
+             << BOLD << CYAN << left << setw(8) << (to_string(feedback.getRating()) + "/5") << RESET
+             << left << setw(28) << remark << endl;
+        
+        count++;
+    }
+    
+    cout << endl;
+    printInfo("Total Feedback Submitted: " + to_string(userFeedbackHistory.size()));
+    
+    pauseScreen();
+}
+
+// View admin detailed feedback history
+void viewAdminFeedbackHistory() {
+    clearScreen();
+    auto allFeedbackHistory = FeedbackManager::getAllFeedbackHistory();
+    
+    if (allFeedbackHistory.empty()) {
+        printInfo("\nNo feedback submitted yet.");
+        pauseScreen();
+        return;
+    }
+    
+    printHeader("\n========== ALL FEEDBACK HISTORY (DETAILED) ==========");
+    printInfo("\nFeedback History:\n");
+    
+    // Print table header
+    cout << BOLD << WHITE;
+    cout << left << setw(5) << "No."
+         << left << setw(8) << "Token#"
+         << left << setw(16) << "Food Item"
+         << left << setw(12) << "User ID"
+         << left << setw(15) << "Day & Meal"
+         << left << setw(8) << "Rating"
+         << left << setw(20) << "Feedback" << RESET << endl;
+    cout << string(84, '-') << endl;
+    
+    int count = 1;
+    double totalRating = 0.0;
+    int excellentCount = 0, goodCount = 0, fairCount = 0, poorCount = 0;
+    
+    for (const auto& [feedback, token, dayMeal] : allFeedbackHistory) {
+        string userId = feedback.getUserId();
+        string remark = feedback.getRemark();
+        string tokenId = feedback.getTokenId();
+        
+        // Extract last 3 digits of token
+        string tokenNum = tokenId;
+        if (tokenNum.find("TKN") == 0) {
+            tokenNum = tokenNum.substr(3);
+        }
+        if (tokenNum.length() >= 3) {
+            tokenNum = tokenNum.substr(tokenNum.length() - 3);
+        }
+        
+        // Get food item from menu based on package name
+        string packageName = token.getItems()[0].itemName;
+        string foodItem = FileManager::getFoodItemsFromPackage(packageName);
+        
+        // If menu lookup failed, extract from token items
+        if (foodItem == "N/A") {
+            auto items = token.getItems();
+            if (items.size() > 1) {
+                foodItem = items[1].itemName;
+            } else if (items.size() > 0) {
+                foodItem = items[0].itemName;
+            }
+        }
+        
+        // Clean up and extract first word
+        while (!foodItem.empty() && foodItem[0] == ' ') foodItem = foodItem.substr(1);
+        while (!foodItem.empty() && foodItem.back() == ' ') foodItem.pop_back();
+        
+        size_t spacePos = foodItem.find(" ");
+        if (spacePos != string::npos) {
+            foodItem = foodItem.substr(0, spacePos);
+        }
+        
+        if (foodItem.length() > 12) {
+            foodItem = foodItem.substr(0, 10) + "...";
+        }
+        
+        // Truncate remark if too long
+        string displayRemark = remark;
+        if (displayRemark.length() > 17) {
+            displayRemark = displayRemark.substr(0, 17) + "...";
+        }
+        
+        // Color code the rating
+        string ratingStr = to_string(feedback.getRating()) + "/5";
+        string ratingColor = RESET;
+        int rating = feedback.getRating();
+        totalRating += rating;
+        
+        if (rating == 5) {
+            ratingColor = GREEN;
+            excellentCount++;
+        } else if (rating == 4) {
+            ratingColor = GREEN;
+            goodCount++;
+        } else if (rating == 3) {
+            ratingColor = YELLOW;
+            fairCount++;
+        } else {
+            ratingColor = RED;
+            poorCount++;
+        }
+        
+        cout << left << setw(5) << (to_string(count) + ".")
+             << left << setw(8) << tokenNum
+             << left << setw(16) << foodItem
+             << left << setw(12) << userId
+             << left << setw(15) << dayMeal
+             << ratingColor << BOLD << left << setw(8) << ratingStr << RESET
+             << left << setw(20) << displayRemark << endl;
+        
+        count++;
+    }
+    
+    cout << endl;
+    printInfo("Total Feedback: " + to_string(allFeedbackHistory.size()));
+    
+    double avgRating = totalRating / allFeedbackHistory.size();
+    cout << "Average Rating: " << fixed << setprecision(2) << avgRating << "/5" << endl;
+    cout << "Excellent (5): " << excellentCount << " | Good (4): " << goodCount 
+         << " | Fair (3): " << fairCount << " | Poor (1-2): " << poorCount << endl;
+    
+    pauseScreen();
 }
