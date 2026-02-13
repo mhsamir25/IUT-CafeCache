@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "TerminalSetup.h"
+
 using namespace std;
 
 Token::Token() : tokenId(""), userId(""), totalAmount(0.0), timestamp(time(nullptr)), status("ACTIVE") {}
@@ -26,33 +28,53 @@ string Token::getUserId() const { return userId; }
 double Token::getTotalAmount() const { return totalAmount; }
 time_t Token::getTimestamp() const { return timestamp; }
 string Token::getStatus() const { return status; }
+vector<OrderItem> Token::getItems() const { return items; }
 
 void Token::setStatus(string newStatus) { status = newStatus; }
 
 void Token::displayToken() const {
-    cout << "\n╔════════════════════════════════════════╗" << endl;
-    cout << "║         IUT CAFECACHE TOKEN           ║" << endl;
-    cout << "╚════════════════════════════════════════╝" << endl;
-    cout << "\nToken ID: " << tokenId << endl;
-    cout << "User ID: " << userId << endl;
+    std::ostringstream header;
+    header << "\n";
+    printHeader("╔════════════════════════════════════════╗");
+    printHeader("║          IUT CAFECACHE TOKEN           ║");
+    printHeader("╚════════════════════════════════════════╝");
+    printLabelValue("Token ID: ", tokenId);
+    printLabelValue("User ID: ", userId);
     time_t t = timestamp;
-    cout << "Time: " << ctime(&t);
-    cout << "\n----------------------------------------" << endl;
-    cout << left << setw(20) << "ITEM" << setw(8) << "QTY" 
-         << setw(10) << "PRICE" << "TOTAL" << endl;
-    cout << "----------------------------------------" << endl;
-    
-    for (const auto& item : items) {
-        cout << left << setw(20) << item.itemName 
-             << setw(8) << item.quantity
-             << "BDT " << setw(6) << fixed << setprecision(2) << item.price
-             << "BDT " << item.totalPrice << endl;
+    printLabelValue("Time: ", string(ctime(&t)));
+    printSeparator();
+
+    // table header
+    {
+        std::ostringstream ss;
+        ss << std::left << std::setw(20) << "ITEM" << std::setw(8) << "QTY" << std::setw(14) << "PRICE" << "TOTAL";
+        printInfo(ss.str());
     }
-    
-    cout << "----------------------------------------" << endl;
-    cout << "TOTAL AMOUNT: BDT " << fixed << setprecision(2) << totalAmount << endl;
-    cout << "STATUS: " << status << endl;
-    cout << "========================================\n" << endl;
+    printInfo(std::string("----------------------------------------"));
+
+    for (const auto& item : items) {
+        std::ostringstream ss;
+        ss << std::left << std::setw(20) << item.itemName
+           << std::setw(8) << item.quantity;
+        {
+            std::ostringstream pss; pss << "BDT " << std::fixed << std::setprecision(2) << item.price;
+            ss << std::setw(14) << pss.str();
+        }
+        ss << "BDT " << std::fixed << std::setprecision(2) << item.totalPrice;
+        printInfo(ss.str());
+    }
+
+    printInfo(std::string("----------------------------------------"));
+    {
+        std::ostringstream tot; tot << "TOTAL AMOUNT: BDT " << std::fixed << std::setprecision(2) << totalAmount;
+        printSuccess(tot.str());
+    }
+    string statusColor = RESET;
+    if (status == "ACTIVE") statusColor = CYAN;
+    else if (status == "COMPLETED") statusColor = GREEN;
+    else if (status == "CANCELLED") statusColor = RED;
+    printLabelValueColored("STATUS: ", status, statusColor);
+    printHeader("========================================\n");
 }
 
 string Token::toFileString() const {
@@ -98,4 +120,20 @@ Token Token::fromFileString(const string& line) {
     }
     
     return token;
+}
+
+pair<string, string> Token::extractDayAndMeal() const {
+    if (items.empty()) {
+        return {"", ""};
+    }
+    
+    string itemName = items[0].itemName;
+    
+    // Split by space
+    stringstream ss(itemName);
+    string day = "", meal = "";
+    
+    ss >> day >> meal;  // Get first two words
+    
+    return {day, meal};
 }

@@ -21,7 +21,7 @@ private:
     vector<OrderItem> items;
     double totalAmount;
     time_t timestamp;
-    string status; // "ACTIVE", "COMPLETED", "CANCELLED"
+    string status; 
     
 public:
     Token();
@@ -38,6 +38,10 @@ public:
     void displayToken() const;
     string toFileString() const;
     static Token fromFileString(const string& line);
+    vector<OrderItem> getItems() const;
+    
+    // Helper: Extract day and meal type from first item name (e.g., "Monday Breakfast Package" -> "Monday", "Breakfast")
+    pair<string, string> extractDayAndMeal() const;
 };
 
 #endif
