@@ -11,6 +11,7 @@
 #include "TokenGenerator.h"
 #include "TerminalSetup.h"
 #include "FeedbackManager.h"
+#include "SalesAnalytics.h"
 
 using namespace std;
 
@@ -39,6 +40,7 @@ void viewDailyMenuRatings();
 void adminViewDailyMenuRatings();
 void viewUserFeedbackHistory();
 void viewAdminFeedbackHistory();
+void handleSalesAnalytics();
 
 // Helper function to get food items for a given day and meal
 string getFoodItemsForMeal(const string& day, const string& meal) {
@@ -142,7 +144,8 @@ void displayAdminMenu() {
     printInfo("4. View Menu Feedback & Ratings");
     printInfo("5. View Detailed Feedback History");
     printInfo("6. View Daily Menu Ratings (By Day & Meal Type)");
-    printInfo("7. Logout");
+    printInfo("7. View Sales Analytics");
+    printInfo("8. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -597,6 +600,9 @@ void handleAdminOperations() {
                 adminViewDailyMenuRatings();
                 break;
             case 7:
+                handleSalesAnalytics();
+                break;
+            case 8:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -945,6 +951,40 @@ void adminViewDailyMenuRatings() {
 }
 
 // Admin: View feedback and remarks for a specific day - DEPRECATED
+
+// Sales Analytics Handler
+void handleSalesAnalytics() {
+    SalesAnalytics analytics;
+    
+    while (true) {
+        clearScreen();
+        printHeader("╔════════════════════════════════════════════════════════╗");
+        printHeader("║              SALES ANALYTICS MENU                      ║");
+        printHeader("╚════════════════════════════════════════════════════════╝");
+        
+        printInfo("\n1. View Top Selling Packages (Last 30 Days)");
+        printInfo("2. View Specific Package Analysis");
+        printInfo("3. Back to Admin Menu");
+        printPrompt("\nEnter your choice: ");
+        
+        int choice;
+        cin >> choice;
+        
+        if (choice == 1) {
+            analytics.displayTopSellingPackages();
+        } 
+        else if (choice == 2) {
+            analytics.displayPackageAnalysis();
+        } 
+        else if (choice == 3) {
+            return;
+        } 
+        else {
+            printError("\nInvalid choice. Please try again.");
+            pauseScreen();
+        }
+    }
+}
 
 int main() {
     // Initialize console for Windows UTF-8 and ANSI color support
