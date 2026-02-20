@@ -1,73 +1,64 @@
-#ifndef SalesAnalytics_H
-#define SalesAnalytics_H
+#ifndef SALESANALYTICS_H
+#define SALESANALYTICS_H
 
 #include <string>
 #include <vector>
 #include <map>
-#include <ctime>
-#include <iomanip>
-#include <sstream>
-#include <algorithm>
-#include <cmath>
 
 using namespace std;
 
-struct PackageStats {
-    string packageName;
-    double avgRating;
-    int totalOrders;
-    vector<int> ratings;
-    vector<time_t> timestamps;
-};
+// Forward declarations for utility functions from main.cpp
+void clearScreen();
+void pauseScreen();
 
-struct DailyData {
-    string dateStr;
-    double avgRating;
-    int orders;
+// Structure to hold package sales data
+struct PackageSales {
+    string packageName;
+    int salesCount;
 };
 
 class SalesAnalytics {
 private:
-    // Map: packageName -> [(rating, timestamp)]
-    map<string, vector<pair<int, time_t>>> packageData;
+    // Helper: Extract date from token ID (e.g., "TKN20260214-1749" -> "20260214")
+    static string extractDateFromToken(const string& tokenId);
     
-    // All packages in order
-    vector<string> allPackages = {
-        "Monday Breakfast", "Monday Lunch", "Monday Dinner",
-        "Tuesday Breakfast", "Tuesday Lunch", "Tuesday Dinner",
-        "Wednesday Breakfast", "Wednesday Lunch", "Wednesday Dinner",
-        "Thursday Breakfast", "Thursday Lunch", "Thursday Dinner",
-        "Friday Breakfast", "Friday Lunch", "Friday Dinner",
-        "Saturday Breakfast", "Saturday Lunch", "Saturday Dinner",
-        "Sunday Breakfast", "Sunday Lunch", "Sunday Dinner"
-    };
+    // Helper: Parse package info from token line (6th field)
+    // Format: "Monday Breakfast Package,1,40" where 1 is the quantity
+    static pair<string, int> parsePackageInfo(const string& packageField);
     
-    bool isInRange(time_t timestamp, int days);
-    string extractPackageFromToken(string tokenId, string comment);
-    void plotBarGraph(vector<PackageStats> stats, string title);
-    void plotBarGraphDaily(vector<DailyData> dailyStats, string title);
-    void plotBarGraphWeekly(vector<DailyData> weeklyStats, string title);
-    void plotTopSellingPackages(vector<PackageStats> topStats);
-    vector<DailyData> getDailyBreakdown(string package, int days);
-    vector<DailyData> getWeeklyBreakdown(string package, int days);
+    // Helper: Check if a date is within last 30 days from a reference date
+    static bool isWithinLast30Days(const string& tokenDate, const string& referenceDate);
+    
+    // Helper: Convert date string (YYYYMMDD) to comparable integer
+    static int dateStringToInt(const string& dateStr);
     
 public:
-    SalesAnalytics();
+    // Get top 5 packages sold in the last 30 days
+    // Returns a vector of PackageSales sorted by sales count (descending)
+    static vector<PackageSales> getTop5Packages();
     
-    // Load feedback data
-    void loadFeedbackData();
+    // Get sales data for a specific package over the last 7 days
+    // Returns a map of date (YYYY-MM-DD) -> sales count
+    static map<string, int> getPackageSalesLast7Days(const string& packageName);
     
-    // Display methods
-    void displayTopSellingPackages();
-    void displayPackageAnalysis();
+    // Display the graph for a specific package over 7 days
+    static void displayPackageWeeklyGraph(const string& packageName);
     
-    // Data methods
-    vector<PackageStats> getTopPackages(int topN, int timeDays);
-    PackageStats getPackageStats(string package, int timeDays);
-    vector<PackageStats> getAllPackagesStats(int timeDays);
+    // Display package selection submenu (day + meal type)
+    static void displayPackageSelectionMenu();
+    
+    // Handle package selection and graph display
+    static void handlePackageAnalysisOperations();
+    
+    // Display the graph for top 5 packages
+    static void displayTop5PackagesGraph();
+    
+    // Display Sales Analytics submenu
+    static void displaySalesAnalyticsMenu();
+    
+    // Handle Sales Analytics menu operations
+    static void handleSalesAnalyticsOperations();
 };
 
-// Helper function
-string fixed_to_string(double val, int precision);
-
 #endif
+
