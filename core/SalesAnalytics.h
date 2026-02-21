@@ -44,6 +44,13 @@ public:
     // Display the graph for a specific package over 7 days
     static void displayPackageWeeklyGraph(const string& packageName);
     
+    // Get sales data for a specific package over the last 30 days (grouped by week)
+    // Returns a map of week_range (e.g., "22-28/1") -> total sales count
+    static map<string, pair<int, int>> getPackageSalesLast30DaysWeekly(const string& packageName);
+    
+    // Display the graph for a specific package over 30 days (weekly intervals)
+    static void displayPackageMonthlyGraph(const string& packageName);
+    
     // Display package selection submenu (day + meal type)
     static void displayPackageSelectionMenu();
     

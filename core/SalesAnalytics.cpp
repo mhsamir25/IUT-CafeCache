@@ -64,6 +64,63 @@ int SalesAnalytics::dateStringToInt(const string& dateStr) {
     return 0;
 }
 
+// Helper: Get day of week for a date (YYYYMMDD format)
+// Returns 0=Sunday, 1=Monday, ..., 6=Saturday
+int getDayOfWeek(const string& dateStr) {
+    int year = stoi(dateStr.substr(0, 4));
+    int month = stoi(dateStr.substr(4, 2));
+    int day = stoi(dateStr.substr(6, 2));
+    
+    struct tm timeinfo = {0};
+    timeinfo.tm_year = year - 1900;
+    timeinfo.tm_mon = month - 1;
+    timeinfo.tm_mday = day;
+    
+    time_t timestamp = mktime(&timeinfo);
+    struct tm* resultTime = localtime(&timestamp);
+    
+    return resultTime->tm_wday; // 0=Sunday, 6=Saturday
+}
+
+// Helper: Subtract days from YYYYMMDD date
+string subtractDaysFromDate(const string& dateStr, int days) {
+    // Convert to time_t, subtract days, convert back
+    int year = stoi(dateStr.substr(0, 4));
+    int month = stoi(dateStr.substr(4, 2));
+    int day = stoi(dateStr.substr(6, 2));
+    
+    struct tm timeinfo = {0};
+    timeinfo.tm_year = year - 1900;
+    timeinfo.tm_mon = month - 1;
+    timeinfo.tm_mday = day;
+    
+    time_t timestamp = mktime(&timeinfo);
+    timestamp -= (days * 86400); // 86400 seconds per day
+    
+    struct tm* resultTime = localtime(&timestamp);
+    
+    char dateBuffer[9];
+    strftime(dateBuffer, sizeof(dateBuffer), "%Y%m%d", resultTime);
+    
+    return string(dateBuffer);
+}
+
+// Helper: Get the Saturday of the week that contains the given date
+// Returns date in YYYYMMDD format of the Saturday at the start of that week
+string getSaturdayOfWeek(const string& dateStr) {
+    int dayOfWeek = getDayOfWeek(dateStr);
+    
+    // dayOfWeek: 0=Sunday, 1=Monday, ..., 6=Saturday
+    // Days to subtract to get to Saturday: (dayOfWeek + 1) % 7
+    // If today is Saturday (6), subtract 0 days
+    // If today is Sunday (0), subtract 1 day
+    // If today is Monday (1), subtract 2 days
+    // If today is Friday (5), subtract 6 days
+    int daysBack = (dayOfWeek + 1) % 7;
+    
+    return subtractDaysFromDate(dateStr, daysBack);
+}
+
 // Check if a date is within last 30 days
 // We use the latest token date as reference, or current date
 bool SalesAnalytics::isWithinLast30Days(const string& tokenDate, const string& referenceDate) {
@@ -255,29 +312,6 @@ string formatDateForDisplay(const string& dateStr) {
     return dateStr;
 }
 
-// Helper: Subtract days from YYYYMMDD date
-string subtractDaysFromDate(const string& dateStr, int days) {
-    // Convert to time_t, subtract days, convert back
-    int year = stoi(dateStr.substr(0, 4));
-    int month = stoi(dateStr.substr(4, 2));
-    int day = stoi(dateStr.substr(6, 2));
-    
-    struct tm timeinfo = {0};
-    timeinfo.tm_year = year - 1900;
-    timeinfo.tm_mon = month - 1;
-    timeinfo.tm_mday = day;
-    
-    time_t timestamp = mktime(&timeinfo);
-    timestamp -= (days * 86400); // 86400 seconds per day
-    
-    struct tm* resultTime = localtime(&timestamp);
-    
-    char dateBuffer[9];
-    strftime(dateBuffer, sizeof(dateBuffer), "%Y%m%d", resultTime);
-    
-    return string(dateBuffer);
-}
-
 // Get sales data for a specific package over the last 7 days
 map<string, int> SalesAnalytics::getPackageSalesLast7Days(const string& packageName) {
     vector<Token> tokens = FileManager::loadTokens();
@@ -418,6 +452,228 @@ void SalesAnalytics::displayPackageWeeklyGraph(const string& packageName) {
     pauseScreen();
 }
 
+// Helper: Add days to YYYYMMDD date
+string addDaysToDate(const string& dateStr, int days) {
+    int year = stoi(dateStr.substr(0, 4));
+    int month = stoi(dateStr.substr(4, 2));
+    int day = stoi(dateStr.substr(6, 2));
+    
+    struct tm timeinfo = {0};
+    timeinfo.tm_year = year - 1900;
+    timeinfo.tm_mon = month - 1;
+    timeinfo.tm_mday = day;
+    
+    time_t timestamp = mktime(&timeinfo);
+    timestamp += (days * 86400); // 86400 seconds per day
+    
+    struct tm* resultTime = localtime(&timestamp);
+    
+    char dateBuffer[9];
+    strftime(dateBuffer, sizeof(dateBuffer), "%Y%m%d", resultTime);
+    
+    return string(dateBuffer);
+}
+
+// Get sales data for a specific package over the last 30 days (grouped by week)
+// Returns a map of week_range (e.g., "22-28/1") -> total sales count
+map<string, pair<int, int>> SalesAnalytics::getPackageSalesLast30DaysWeekly(const string& packageName) {
+    vector<Token> tokens = FileManager::loadTokens();
+    vector<int> weeklySales(5, 0); // Vector to store sales count for 5 weeks
+    vector<pair<string, string>> weekRanges(5); // Store start and end dates for 5 weeks
+    
+    string todayDate = getTodayDate();
+    
+    // Build week ranges: Start from 30 days ago, then add 7 days for each week
+    // This ensures exactly 30 days coverage
+    string thirtyDaysAgo = subtractDaysFromDate(todayDate, 29); // 29 days back = 30 day period including today
+    
+    for (int week = 0; week < 5; week++) {
+        // Calculate week start by adding (week * 7) days to thirtyDaysAgo
+        string weekStartDate = addDaysToDate(thirtyDaysAgo, week * 7);
+        
+        // Calculate week end
+        string weekEndDate;
+        if (week < 4) {
+            // First 4 weeks: exactly 7 days each (ending 6 days after start)
+            weekEndDate = addDaysToDate(weekStartDate, 6); // Add 6 days
+        } else {
+            // Last week: goes until today
+            weekEndDate = todayDate;
+        }
+        
+        weekRanges[week] = {weekStartDate, weekEndDate};
+    }
+    
+    // Count sales for this package across the 30 days, grouped by weekly chunks
+    for (const auto& token : tokens) {
+        string tokenDate = extractDateFromToken(token.getTokenId());
+        
+        // Check if token is within last 30 days
+        if (isWithinLast30Days(tokenDate, todayDate)) {
+            // Find which week this token belongs to
+            int tokenInt = dateStringToInt(tokenDate);
+            int startInt = dateStringToInt(thirtyDaysAgo);
+            
+            int yearDiff = (tokenInt / 10000) - (startInt / 10000);
+            int monthDiff = ((tokenInt / 100) % 100) - ((startInt / 100) % 100);
+            int dayDiff = (tokenInt % 100) - (startInt % 100);
+            
+            int totalDaysDiff = yearDiff * 365 + monthDiff * 30 + dayDiff;
+            
+            if (totalDaysDiff >= 0 && totalDaysDiff <= 29) {
+                int weekIndex = totalDaysDiff / 7;
+                if (weekIndex > 4) weekIndex = 4; // Cap at week 4
+                
+                vector<OrderItem> items = token.getItems();
+                for (const auto& item : items) {
+                    if (item.itemName == packageName) {
+                        weeklySales[weekIndex] += item.quantity;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Convert to map with week range strings and sales data
+    map<string, pair<int, int>> result; // week_range -> (salesCount, weekIndex)
+    
+    for (int week = 0; week < 5; week++) {
+        string startDateStr = weekRanges[week].first;
+        string endDateStr = weekRanges[week].second;
+        
+        // Create week range label (e.g., "22-28/1")
+        string startDay = startDateStr.substr(6, 2);      // DD
+        string startMonth = startDateStr.substr(4, 2);    // MM
+        string endDay = endDateStr.substr(6, 2);          // DD
+        string endMonth = endDateStr.substr(4, 2);        // MM
+        
+        string weekRange;
+        if (startMonth == endMonth) {
+            // Same month: "22-28/1"
+            weekRange = startDay + "-" + endDay + "/" + endMonth;
+        } else {
+            // Different months: "29/1-4/2"
+            weekRange = startDay + "/" + startMonth + "-" + endDay + "/" + endMonth;
+        }
+        
+        // Cap sales at 100 for display consistency
+        int cappedSales = weeklySales[week];
+        if (cappedSales > 100) cappedSales = 100;
+        
+        result[weekRange] = {cappedSales, week}; // Store capped sales and week index
+    }
+    
+    return result;
+}
+
+// Display the graph for a specific package over 30 days (weekly intervals)
+void SalesAnalytics::displayPackageMonthlyGraph(const string& packageName) {
+    clearScreen();
+    
+    map<string, pair<int, int>> weeklySales = getPackageSalesLast30DaysWeekly(packageName);
+    
+    // Print header
+    cout << "\n";
+    printHeader("╔═══════════════════════════════════════════╗");
+    printHeader("║   PACKAGE-WISE SALES - LAST 30 DAYS       ║");
+    printHeader("║        (Weekly Total Breakdown)           ║");
+    printHeader("╚═══════════════════════════════════════════╝");
+    cout << "\n";
+    printInfo("Title: " + packageName);
+    cout << "\n";
+    
+    // Fixed scale: 0-100 across 20 rows (each row = 5 units)
+    const int TOTAL_ROWS = 20;
+    const int COL_WIDTH = 12; // Width of each column (increased from 8 for better spacing)
+    
+    // Convert map to vector for ordered display (week 0 to 4 = oldest to newest)
+    vector<pair<string, int>> weeklyData; // (week_range, sales)
+    for (int week = 0; week < 5; week++) {
+        for (const auto& entry : weeklySales) {
+            if (entry.second.second == week) { // Match week index
+                weeklyData.push_back({entry.first, entry.second.first});
+                break;
+            }
+        }
+    }
+    
+    // Print graph from top to bottom (20 rows)
+    for (int row = TOTAL_ROWS; row >= 0; row--) {
+        int yValue = row * 5; // Y value at this row (0, 5, 10, 15... 100)
+        
+        // Print Y-axis label only at 0, 20, 40, 60, 80, 100+
+        if (yValue == 100) {
+            cout << "100+ | ";
+        } else if (yValue == 80) {
+            cout << " 80  | ";
+        } else if (yValue == 60) {
+            cout << " 60  | ";
+        } else if (yValue == 40) {
+            cout << " 40  | ";
+        } else if (yValue == 20) {
+            cout << " 20  | ";
+        } else if (yValue == 0) {
+            cout << "  0  | ";
+        } else {
+            cout << "     | "; // Blank row (no label)
+        }
+        
+        // Print bars for this height level
+        for (const auto& week : weeklyData) {
+            int barHeight = week.second;
+            
+            // Cap the bar height at 100
+            if (barHeight > 100) barHeight = 100;
+            
+            // Center the bar symbol within the column using exactly COL_WIDTH characters
+            int left_pad = (COL_WIDTH - 1) / 2;  // 5 spaces for COL_WIDTH=12
+            int right_pad = COL_WIDTH - 1 - left_pad;  // 6 spaces for COL_WIDTH=12
+            
+            // Print left padding
+            for (int p = 0; p < left_pad; p++) cout << " ";
+            
+            // At top of bar: print dash
+            if (barHeight == yValue) {
+                cout << "-";
+            } 
+            // Below top of bar: print asterisk
+            else if (barHeight > yValue) {
+                cout << "*";
+            } 
+            // Above bar: print space
+            else {
+                cout << " ";
+            }
+            
+            // Print right padding
+            for (int p = 0; p < right_pad; p++) cout << " ";
+        }
+        
+        cout << "\n";
+    }
+    
+    // Print bottom axis line
+    cout << "     +" << string(weeklyData.size() * COL_WIDTH - 1, '-') << "\n";
+    
+    // Print week ranges on X-axis
+    cout << "     | ";
+    for (const auto& week : weeklyData) {
+        cout << setw(COL_WIDTH) << week.first;
+    }
+    cout << "\n\n";
+    
+    // Print sales summary
+    printInfo("Weekly Sales Summary:");
+    for (const auto& week : weeklyData) {
+        stringstream ss;
+        ss << "  " << week.first << ": " << week.second << " units sold";
+        printInfo(ss.str());
+    }
+    
+    cout << "\n";
+    pauseScreen();
+}
+
 // Display package selection submenu
 void SalesAnalytics::displayPackageSelectionMenu() {
     clearScreen();
@@ -448,13 +704,7 @@ void SalesAnalytics::displayPackageSelectionMenu() {
     vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
     string selectedDay = days[dayChoice - 1];
     
-    // Select meal type
-    // clearScreen();
     cout << "\n";
-    // printHeader("╔════════════════════════════════════════╗");
-    // printHeader("║     PACKAGE-WISE SALES ANALYSIS        ║");
-    // printHeader("╚════════════════════════════════════════╝");
-    
     printInfo("\nSelect Meal Type:");
     printInfo("1. Breakfast");
     printInfo("2. Lunch");
@@ -473,16 +723,10 @@ void SalesAnalytics::displayPackageSelectionMenu() {
     vector<string> meals = {"Breakfast", "Lunch", "Dinner"};
     string selectedMeal = meals[mealChoice - 1];
     
-    // Select time range
-    // clearScreen();
     cout << "\n";
-    // printHeader("╔════════════════════════════════════════╗");
-    // printHeader("║     PACKAGE-WISE SALES ANALYSIS        ║");
-    // printHeader("╚════════════════════════════════════════╝");
-    
     printInfo("\nSelect Time Range:");
     printInfo("1. Last 7 Days (Weekly)");
-    printInfo("2. Last 30 Days (Monthly) - Coming Soon");
+    printInfo("2. Last 30 Days (Monthly)");
     
     int timeChoice;
     printPrompt("\nEnter choice (1-2): ");
@@ -493,8 +737,9 @@ void SalesAnalytics::displayPackageSelectionMenu() {
         string packageName = selectedDay + " " + selectedMeal + " Package";
         displayPackageWeeklyGraph(packageName);
     } else if (timeChoice == 2) {
-        printInfo("\nMonthly analysis feature coming soon!");
-        pauseScreen();
+        // Build package name and display 30-day graph
+        string packageName = selectedDay + " " + selectedMeal + " Package";
+        displayPackageMonthlyGraph(packageName);
     } else {
         printError("\nInvalid choice.");
         pauseScreen();
