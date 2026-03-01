@@ -43,4 +43,7 @@ void printSeparator();
 void setColorsEnabled(bool enabled);
 bool isColorsEnabled();
 
+// Initialize console for Windows UTF-8 and ANSI color support
+void initializeConsole();
+
 #endif

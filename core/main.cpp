@@ -11,6 +11,7 @@
 #include "TokenGenerator.h"
 #include "TerminalSetup.h"
 #include "FeedbackManager.h"
+#include "SalesAnalytics.h"
 
 using namespace std;
 
@@ -142,7 +143,8 @@ void displayAdminMenu() {
     printInfo("4. View Menu Feedback & Ratings");
     printInfo("5. View Detailed Feedback History");
     printInfo("6. View Daily Menu Ratings (By Day & Meal Type)");
-    printInfo("7. Logout");
+    printInfo("7. Sales Analytics");
+    printInfo("8. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -597,6 +599,9 @@ void handleAdminOperations() {
                 adminViewDailyMenuRatings();
                 break;
             case 7:
+                SalesAnalytics::handleSalesAnalyticsOperations();
+                break;
+            case 8:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -947,6 +952,9 @@ void adminViewDailyMenuRatings() {
 // Admin: View feedback and remarks for a specific day - DEPRECATED
 
 int main() {
+    // Initialize console for Windows UTF-8 and ANSI color support
+    initializeConsole();
+    
     int choice;
 
     while (true) {
