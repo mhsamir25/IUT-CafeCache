@@ -15,6 +15,10 @@ public:
     static vector<class RechargeRequest> getPendingRequests();
     static bool approveRequest(string requestId);
     static bool rejectRequest(string requestId);
+    // Bulk operations
+    static vector<int> parseRequestIndices(const string& input, int maxSize);
+    static int bulkApproveRequests(const vector<int>& indices);
+    static int bulkRejectRequests(const vector<int>& indices);
 };
 
 #endif

@@ -2,6 +2,7 @@
 #include <limits>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
 #include "User.h"
 #include "AuthManager.h"
 #include "FileManager.h"
@@ -33,6 +34,10 @@ void viewPurchaseHistory();
 void viewPendingRecharges();
 void processRechargeRequest();
 void viewAllUsers();
+void manageUserInformation();
+void searchUserByID();
+void viewStudentInfo();
+void viewTeacherInfo();
 void submitFeedback();
 void viewAllMenuRatings();
 void viewFeedbackForDay();
@@ -139,7 +144,7 @@ void displayAdminMenu() {
     printLabelValue("Welcome: ", currentUser->getName());
     printInfo("\n1. View Pending Recharge Requests");
     printInfo("2. Process Recharge Request");
-    printInfo("3. View All Users");
+    printInfo("3. Manage User Information");
     printInfo("4. View Menu Feedback & Ratings");
     printInfo("5. View Detailed Feedback History");
     printInfo("6. View Daily Menu Ratings (By Day & Meal Type)");
@@ -587,7 +592,7 @@ void handleAdminOperations() {
                 processRechargeRequest();
                 break;
             case 3:
-                viewAllUsers();
+                manageUserInformation();
                 break;
             case 4:
                 viewFeedbackForDay();
@@ -644,50 +649,284 @@ void processRechargeRequest() {
         cout << left << setw(3) << (to_string(i+1) + ".") << setw(12) << shortId << setw(12) << pending[i].getUserId() << setw(12) << ("BDT " + amt.str()) << "\n";
     }
 
-    int choiceIndex = -1;
-    printPrompt("\nEnter request number to process (0 to cancel): ");
-    cin >> choiceIndex;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    
+    printInfo("\nOptions:");
+    printInfo("  - Single: Enter '5' to accept request #5");
+    printInfo("  - Range: Enter '1-10' to accept requests #1 to #10");
+    printInfo("  - Multiple: Enter '1,5,7-10,15' for varied selections");
+    printInfo("  - Enter '0' to cancel");
+    
+    string input;
+    printPrompt("\nEnter request number(s) to process: ");
+    getline(cin, input);
 
-    if (choiceIndex == 0) return;
-    if (choiceIndex < 1 || choiceIndex > (int)pending.size()) {
-        printError("\n✗ Invalid selection.");
-        pauseScreen();
-        return;
-    }
+    if (input == "0") return;
+    
+    try {
+        vector<int> selectedIndices = RechargeManager::parseRequestIndices(input, pending.size());
+        
+        if (selectedIndices.empty()) {
+            printError("\n✗ Invalid selection. No valid requests found.");
+            pauseScreen();
+            return;
+        }
+        
+        // Display selected requests for confirmation
+        printInfo("\nSelected requests:");
+        for (int idx : selectedIndices) {
+            if (idx >= 1 && idx <= (int)pending.size()) {
+                string fullId = pending[idx - 1].getRequestId();
+                string shortId = fullId.substr(0, std::min((size_t)8, fullId.size()));
+                std::ostringstream amt; amt << fixed << setprecision(2) << pending[idx - 1].getAmount();
+                cout << "  #" << idx << " | " << shortId << " | " << pending[idx - 1].getUserId() << " | BDT " << amt.str() << "\n";
+            }
+        }
+        
+        char decision;
+        printPrompt("\nApprove all these requests? (y/n): ");
+        cin >> decision;
 
-    // Map selection to full request id
-    string selectedRequestId = pending[choiceIndex - 1].getRequestId();
-
-    // Confirm
-    char decision;
-    printPrompt("Approve this request? (y/n): ");
-    cin >> decision;
-
-    if (decision == 'y' || decision == 'Y') {
-        RechargeManager::approveRequest(selectedRequestId);
-    } else {
-        RechargeManager::rejectRequest(selectedRequestId);
+        if (decision == 'y' || decision == 'Y') {
+            int approved = RechargeManager::bulkApproveRequests(selectedIndices);
+            printSuccess("\n✓ " + to_string(approved) + " request(s) approved successfully!");
+        } else {
+            int rejected = RechargeManager::bulkRejectRequests(selectedIndices);
+            printSuccess("\n✓ " + to_string(rejected) + " request(s) rejected.");
+        }
+    } catch (const exception& e) {
+        printError("\n✗ Error parsing input: " + string(e.what()));
     }
 
     pauseScreen();
 }
 
-// View all users
-void viewAllUsers() {
+// Manage User Information - Submenu for searching and browsing users
+void manageUserInformation() {
+    int choice;
+    while (true) {
+        clearScreen();
+        printHeader("\n========== MANAGE USER INFORMATION ==========");
+        printInfo("1. Search User by ID");
+        printInfo("2. View Student Information (Paginated)");
+        printInfo("3. View Teacher Information (Paginated)");
+        printInfo("4. Back to Admin Menu");
+        printPrompt("\nEnter your choice: ");
+        cin >> choice;
+        
+        switch (choice) {
+            case 1:
+                searchUserByID();
+                break;
+            case 2:
+                viewStudentInfo();
+                break;
+            case 3:
+                viewTeacherInfo();
+                break;
+            case 4:
+                return;
+            default:
+                printError("\n✗ Invalid choice. Please try again.\n");
+                pauseScreen();
+        }
+    }
+}
+
+// Search for a specific user by ID
+void searchUserByID() {
     clearScreen();
     vector<User> users = FileManager::loadUsers();
     
-    printHeader("\n========== ALL USERS ==========");
+    printHeader("\n========== SEARCH USER BY ID ==========");
     
-    for (const auto& user : users) {
-        printLabelValue("User ID: ", user.getUserID());
-        printLabelValue("Name: ", user.getName());
-        printLabelValue("Role: ", user.getRole());
-        printLabelValue("Wallet Balance: BDT ", to_string(user.getWalletBalance()));
+    string searchId;
+    printPrompt("Enter User ID to search: ");
+    cin >> searchId;
+    
+    User* foundUser = FileManager::findUser(searchId, users);
+    
+    if (foundUser != nullptr) {
+        clearScreen();
+        printHeader("\n========== USER DETAILS ==========");
+        printLabelValue("User ID: ", foundUser->getUserID());
+        printLabelValue("Name: ", foundUser->getName());
+        printLabelValue("Role: ", foundUser->getRole());
+        printLabelValue("Wallet Balance: BDT ", to_string(foundUser->getWalletBalance()));
         printSeparator();
+    } else {
+        printError("\n✗ User not found with ID: " + searchId);
     }
     
     pauseScreen();
+}
+
+// View Student Information with Pagination
+void viewStudentInfo() {
+    clearScreen();
+    vector<User> users = FileManager::loadUsers();
+    
+    // Filter only students
+    vector<User> students;
+    for (const auto& user : users) {
+        if (user.getRole() == "STUDENT") {
+            students.push_back(user);
+        }
+    }
+    
+    // Sort by user ID (ascending)
+    sort(students.begin(), students.end(), [](const User& a, const User& b) {
+        return a.getUserID() < b.getUserID();
+    });
+    
+    if (students.empty()) {
+        printError("\n✗ No students found in the system.");
+        pauseScreen();
+        return;
+    }
+    
+    int itemsPerPage = 10;
+    int currentPage = 0;
+    int totalPages = (students.size() + itemsPerPage - 1) / itemsPerPage;
+    
+    while (true) {
+        clearScreen();
+        printHeader("\n========== STUDENT INFORMATION (Paginated) ==========");
+        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
+        printLabelValue("Total Students: ", to_string(students.size()));
+        printSeparator();
+        
+        int startIdx = currentPage * itemsPerPage;
+        int endIdx = min(startIdx + itemsPerPage, (int)students.size());
+        
+        for (int i = startIdx; i < endIdx; ++i) {
+            cout << "\n" << (i + 1) << ". ";
+            printLabelValue("ID: ", students[i].getUserID());
+            cout << "   ";
+            printLabelValue("Name: ", students[i].getName());
+            cout << "   ";
+            printLabelValue("Balance: BDT ", to_string(students[i].getWalletBalance()));
+        }
+        
+        printSeparator();
+        printInfo("\nNavigation Options:");
+        if (currentPage > 0) {
+            printInfo("'p' - Previous Page");
+        }
+        if (currentPage < totalPages - 1) {
+            printInfo("'n' - Next Page");
+        }
+        printInfo("'q' - Quit");
+        
+        printPrompt("\nEnter your choice: ");
+        char choice;
+        cin >> choice;
+        
+        if (choice == 'n' || choice == 'N') {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            } else {
+                printError("\n✗ Already on the last page.");
+                pauseScreen();
+            }
+        } else if (choice == 'p' || choice == 'P') {
+            if (currentPage > 0) {
+                currentPage--;
+            } else {
+                printError("\n✗ Already on the first page.");
+                pauseScreen();
+            }
+        } else if (choice == 'q' || choice == 'Q') {
+            break;
+        } else {
+            printError("\n✗ Invalid choice.");
+            pauseScreen();
+        }
+    }
+}
+
+// View Teacher Information with Pagination
+void viewTeacherInfo() {
+    clearScreen();
+    vector<User> users = FileManager::loadUsers();
+    
+    // Filter only teachers
+    vector<User> teachers;
+    for (const auto& user : users) {
+        if (user.getRole() == "TEACHER") {
+            teachers.push_back(user);
+        }
+    }
+    
+    // Sort by user ID (ascending)
+    sort(teachers.begin(), teachers.end(), [](const User& a, const User& b) {
+        return a.getUserID() < b.getUserID();
+    });
+    
+    if (teachers.empty()) {
+        printError("\n✗ No teachers found in the system.");
+        pauseScreen();
+        return;
+    }
+    
+    int itemsPerPage = 10;
+    int currentPage = 0;
+    int totalPages = (teachers.size() + itemsPerPage - 1) / itemsPerPage;
+    
+    while (true) {
+        clearScreen();
+        printHeader("\n========== TEACHER INFORMATION (Paginated) ==========");
+        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
+        printLabelValue("Total Teachers: ", to_string(teachers.size()));
+        printSeparator();
+        
+        int startIdx = currentPage * itemsPerPage;
+        int endIdx = min(startIdx + itemsPerPage, (int)teachers.size());
+        
+        for (int i = startIdx; i < endIdx; ++i) {
+            cout << "\n" << (i + 1) << ". ";
+            printLabelValue("ID: ", teachers[i].getUserID());
+            cout << "   ";
+            printLabelValue("Name: ", teachers[i].getName());
+            cout << "   ";
+            printLabelValue("Balance: BDT ", to_string(teachers[i].getWalletBalance()));
+        }
+        
+        printSeparator();
+        printInfo("\nNavigation Options:");
+        if (currentPage > 0) {
+            printInfo("'p' - Previous Page");
+        }
+        if (currentPage < totalPages - 1) {
+            printInfo("'n' - Next Page");
+        }
+        printInfo("'q' - Quit");
+        
+        printPrompt("\nEnter your choice: ");
+        char choice;
+        cin >> choice;
+        
+        if (choice == 'n' || choice == 'N') {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            } else {
+                printError("\n✗ Already on the last page.");
+                pauseScreen();
+            }
+        } else if (choice == 'p' || choice == 'P') {
+            if (currentPage > 0) {
+                currentPage--;
+            } else {
+                printError("\n✗ Already on the first page.");
+                pauseScreen();
+            }
+        } else if (choice == 'q' || choice == 'Q') {
+            break;
+        } else {
+            printError("\n✗ Invalid choice.");
+            pauseScreen();
+        }
+    }
 }
 
 // Submit feedback for a day's menu
