@@ -25,6 +25,7 @@ public:
     time_t getTimestamp() const;
     
     void setStatus(string newStatus);
+    void setTimestamp(time_t ts);
     
     string toFileString() const;
     static RechargeRequest fromFileString(const string& line);

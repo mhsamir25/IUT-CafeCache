@@ -20,6 +20,8 @@ time_t RechargeRequest::getTimestamp() const { return timestamp; }
 
 void RechargeRequest::setStatus(string newStatus) { status = newStatus; }
 
+void RechargeRequest::setTimestamp(time_t ts) { timestamp = ts; }
+
 string RechargeRequest::toFileString() const {
     return requestId + "|" + userId + "|" + to_string(amount) + "|" + status + "|" + to_string(timestamp);
 }
@@ -36,6 +38,7 @@ RechargeRequest RechargeRequest::fromFileString(const string& line) {
     
     RechargeRequest req(reqId, uid, stod(amtStr));
     req.setStatus(stat);
+    req.setTimestamp(stol(timeStr));
     
     return req;
 }

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
+#include <ctime>
 #include "User.h"
 #include "AuthManager.h"
 #include "FileManager.h"
@@ -28,7 +29,6 @@ void handleAdminOperations();
 void registerNewUser();
 void submitRechargeRequest();
 void viewRechargeStatus();
-void viewWalletBalance();
 void generateOrderToken();
 void viewPurchaseHistory();
 void viewPendingRecharges();
@@ -40,11 +40,10 @@ void viewStudentInfo();
 void viewTeacherInfo();
 void submitFeedback();
 void viewAllMenuRatings();
-void viewFeedbackForDay();
+void viewFeedbackHistoryPaginated();
 void viewDailyMenuRatings();
 void adminViewDailyMenuRatings();
 void viewUserFeedbackHistory();
-void viewAdminFeedbackHistory();
 
 // Helper function to get food items for a given day and meal
 string getFoodItemsForMeal(const string& day, const string& meal) {
@@ -115,21 +114,33 @@ void displayStudentMenu() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
     
+    // Reload user data to get latest wallet balance
+    vector<User> users = FileManager::loadUsers();
+    User* updatedUser = FileManager::findUser(currentUser->getUserID(), users);
+    if (updatedUser != nullptr) {
+        currentUser->setWalletBalance(updatedUser->getWalletBalance());
+    }
+    
     cout<<"\n";
     printHeader("╔═══════════════════════════════════════╗");
     printHeader("║         STUDENT/TEACHER MENU          ║");
     printHeader("╚═══════════════════════════════════════╝");
     printLabelValue("Welcome: ", currentUser->getName());
     printLabelValue("User ID: ", currentUser->getUserID());
-    printInfo("\n1. View Wallet Balance");
-    printInfo("2. Submit Recharge Request");
-    printInfo("3. View Recharge Request Status");
-    printInfo("4. Place Order (Weekday Menu)");
-    printInfo("5. View Purchase History");
-    printInfo("6. Submit Feedback for Your Orders");
-    printInfo("7. View Your Feedback History");
-    printInfo("8. View Daily Menu Ratings");
-    printInfo("9. Logout");
+    
+    // Display wallet balance with 2 decimal places
+    std::ostringstream balanceStr;
+    balanceStr << fixed << setprecision(2) << currentUser->getWalletBalance();
+    printLabelValue("Wallet Balance: BDT ", balanceStr.str());
+    
+    printInfo("\n1. Submit Recharge Request");
+    printInfo("2. View Recharge Request Status");
+    printInfo("3. Place Order (Weekday Menu)");
+    printInfo("4. View Purchase History");
+    printInfo("5. Submit Feedback for Your Orders");
+    printInfo("6. View Your Feedback History");
+    printInfo("7. View Daily Menu Ratings");
+    printInfo("8. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -145,11 +156,10 @@ void displayAdminMenu() {
     printInfo("\n1. View Pending Recharge Requests");
     printInfo("2. Process Recharge Request");
     printInfo("3. Manage User Information");
-    printInfo("4. View Menu Feedback & Ratings");
-    printInfo("5. View Detailed Feedback History");
-    printInfo("6. View Daily Menu Ratings (By Day & Meal Type)");
-    printInfo("7. Sales Analytics");
-    printInfo("8. Logout");
+    printInfo("4. View Feedback History (Paginated)");
+    printInfo("5. View Daily Menu Ratings (By Day & Meal Type)");
+    printInfo("6. Sales Analytics");
+    printInfo("7. Logout");
     printPrompt("\nEnter your choice: ");
 }
 
@@ -456,30 +466,27 @@ void handleStudentOperations() {
         
         switch (choice) {
             case 1:
-                viewWalletBalance();
-                break;
-            case 2:
                 submitRechargeRequest();
                 break;
-            case 3:
+            case 2:
                 viewRechargeStatus();
                 break;
-            case 4:
+            case 3:
                 generateOrderToken();
                 break;
-            case 5:
+            case 4:
                 viewPurchaseHistory();
                 break;
-            case 6:
+            case 5:
                 submitFeedback();
                 break;
-            case 7:
+            case 6:
                 viewUserFeedbackHistory();
                 break;
-            case 8:
+            case 7:
                 viewDailyMenuRatings();
                 break;
-            case 9:
+            case 8:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -491,33 +498,25 @@ void handleStudentOperations() {
     }
 }
 
-// View wallet balance
-void viewWalletBalance() {
+
+// Submit recharge request
+void submitRechargeRequest() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
     
     // Reload user data to get latest wallet balance
     vector<User> users = FileManager::loadUsers();
     User* updatedUser = FileManager::findUser(currentUser->getUserID(), users);
-    
     if (updatedUser != nullptr) {
         currentUser->setWalletBalance(updatedUser->getWalletBalance());
     }
     
-    printHeader("\n========== WALLET BALANCE ==========");
-    printLabelValue("User: ", currentUser->getName());
-    printLabelValue("User ID: ", currentUser->getUserID());
-    printLabelValue("\nCurrent Balance: BDT ", to_string(currentUser->getWalletBalance()));
-    
-        pauseScreen();
-    }
-// Submit recharge request
-void submitRechargeRequest() {
-    clearScreen();
-    User* currentUser = AuthManager::getCurrentUser();
-    
     printHeader("\n========== SUBMIT RECHARGE REQUEST ==========");
-    printLabelValue("Current Balance: BDT ", to_string(currentUser->getWalletBalance()));
+    
+    // Display current balance with 2 decimal places
+    std::ostringstream balanceStr;
+    balanceStr << fixed << setprecision(2) << currentUser->getWalletBalance();
+    printLabelValue("Current Balance: BDT ", balanceStr.str());
     
     double amount;
     printPrompt("Enter amount to recharge: BDT ");
@@ -541,8 +540,135 @@ void viewRechargeStatus() {
     clearScreen();
     User* currentUser = AuthManager::getCurrentUser();
     
-    RechargeManager::viewUserRequests(currentUser->getUserID());
-    pauseScreen();
+    // Load all recharge requests and filter for current user
+    vector<RechargeRequest> allRequests = FileManager::loadRechargeRequests();
+    vector<RechargeRequest> userRequests;
+    
+    for (const auto& req : allRequests) {
+        if (req.getUserId() == currentUser->getUserID()) {
+            userRequests.push_back(req);
+        }
+    }
+    
+    if (userRequests.empty()) {
+        printHeader("\n========== YOUR RECHARGE REQUESTS ==========");
+        printInfo("No recharge requests found.\n");
+        pauseScreen();
+        return;
+    }
+    
+    // Sort by timestamp descending (most recent first)
+    sort(userRequests.begin(), userRequests.end(), [](const RechargeRequest& a, const RechargeRequest& b) {
+        return a.getTimestamp() > b.getTimestamp();
+    });
+    
+    // Pagination: 3 items per page
+    const int itemsPerPage = 3;
+    int totalPages = (userRequests.size() + itemsPerPage - 1) / itemsPerPage;
+    int currentPage = 0;
+    
+    while (true) {
+        clearScreen();
+        printHeader("\n========== YOUR RECHARGE REQUESTS (PAGINATED) ==========");
+        printLabelValue("Total Requests: ", to_string(userRequests.size()));
+        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
+        
+        // Calculate range for current page
+        int startIdx = currentPage * itemsPerPage;
+        int endIdx = min(startIdx + itemsPerPage, (int)userRequests.size());
+        
+        // Print table header
+        cout << "\n" << BOLD << WHITE;
+        cout << left << setw(5) << "No."
+             << left << setw(15) << "Request ID"
+             << left << setw(14) << "Amount (BDT)"
+             << left << setw(15) << "Status"
+             << left << setw(20) << "Date & Time"
+             << RESET << endl;
+        cout << string(69, '-') << endl;
+        
+        // Print requests for current page
+        for (int i = startIdx; i < endIdx; i++) {
+            const RechargeRequest& req = userRequests[i];
+            
+            // Extract last 4 digits of request ID
+            string reqNum = req.getRequestId();
+            if (reqNum.find("REQ") == 0) {
+                reqNum = reqNum.substr(3);
+            }
+            if (reqNum.length() >= 4) {
+                reqNum = reqNum.substr(reqNum.length() - 4);
+            }
+            
+            // Get amount
+            ostringstream amountStr;
+            amountStr << fixed << setprecision(2) << req.getAmount();
+            
+            // Get status with color
+            string status = req.getStatus();
+            string statusColor = RESET;
+            if (status == "PENDING") statusColor = YELLOW;
+            else if (status == "APPROVED") statusColor = GREEN;
+            else if (status == "REJECTED") statusColor = RED;
+            
+            // Get timestamp
+            time_t t = req.getTimestamp();
+            tm* timeinfo = localtime(&t);
+            ostringstream timeStr;
+            timeStr << (1900 + timeinfo->tm_year) << "-"
+                   << setfill('0') << setw(2) << (1 + timeinfo->tm_mon) << "-"
+                   << setfill('0') << setw(2) << timeinfo->tm_mday << " "
+                   << setfill('0') << setw(2) << timeinfo->tm_hour << ":"
+                   << setfill('0') << setw(2) << timeinfo->tm_min;
+            
+            // Print row
+            cout << left << setw(5) << (to_string(i - startIdx + 1) + ".")
+                 << left << setw(15) << reqNum
+                 << left << setw(14) << amountStr.str();
+            
+            // Print status with color
+            cout << statusColor << BOLD << left << setw(15) << status << RESET;
+            
+            cout << left << setw(20) << timeStr.str() << endl;
+        }
+        
+        cout << "\n";
+        
+        // Navigation options
+        if (currentPage > 0 && currentPage < totalPages - 1) {
+            printPrompt("(p)revious | (n)ext | (q)uit: ");
+        } else if (currentPage == 0 && totalPages > 1) {
+            printPrompt("(n)ext | (q)uit: ");
+        } else if (currentPage == totalPages - 1 && totalPages > 1) {
+            printPrompt("(p)revious | (q)uit: ");
+        } else {
+            printPrompt("(q)uit: ");
+        }
+        
+        string input;
+        cin >> input;
+        
+        if (input == "n" || input == "N") {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            } else {
+                printError("\n✗ Already viewing the most recent requests.\n");
+                pauseScreen();
+            }
+        } else if (input == "p" || input == "P") {
+            if (currentPage > 0) {
+                currentPage--;
+            } else {
+                printError("\n✗ Already viewing the oldest requests.\n");
+                pauseScreen();
+            }
+        } else if (input == "q" || input == "Q") {
+            break;
+        } else {
+            printError("\n✗ Invalid choice. Please try again.\n");
+            pauseScreen();
+        }
+    }
 }
 
 
@@ -555,25 +681,173 @@ void viewPurchaseHistory() {
     // Get all tokens for this user
     vector<Token> tokens = FileManager::getUserTokens(currentUser->getUserID());
     
-    printHeader("\n========== PURCHASE HISTORY ==========");
-
-    // Debug: show how many tokens found
-    printLabelValue("Found ", to_string(tokens.size()) + " token(s) for user " + currentUser->getUserID() + ".");
-
     if (tokens.empty()) {
+        printHeader("\n========== PURCHASE HISTORY ==========");
         printInfo("No purchase history found.\n");
-    } else {
-        // Print each token (most recent last as stored in file)
-        int idx = 1;
-        for (const auto& token : tokens) {
-            printInfo("----- Order #" + to_string(idx++) + " -----");
-            token.displayToken();
-            printSeparator();
-            printInfo("\n");
-        }
+        pauseScreen();
+        return;
     }
     
-    pauseScreen();
+    // Sort by timestamp descending (most recent first)
+    sort(tokens.begin(), tokens.end(), [](const Token& a, const Token& b) {
+        return a.getTimestamp() > b.getTimestamp();
+    });
+    
+    // Pagination: 3 items per page
+    const int itemsPerPage = 3;
+    int totalPages = (tokens.size() + itemsPerPage - 1) / itemsPerPage;
+    int currentPage = 0;
+    
+    while (true) {
+        clearScreen();
+        printHeader("\n========== PURCHASE HISTORY (PAGINATED) ==========");
+        printLabelValue("Total Orders: ", to_string(tokens.size()));
+        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
+        
+        // Calculate range for current page
+        int startIdx = currentPage * itemsPerPage;
+        int endIdx = min(startIdx + itemsPerPage, (int)tokens.size());
+        
+        // Print table header
+        cout << "\n" << BOLD << WHITE;
+        cout << left << setw(5) << "No."
+             << left << setw(15) << "Token ID"
+             << left << setw(20) << "Date & Time"
+             << left << setw(20) << "Items"
+             << left << setw(14) << "Amount"
+             << RESET << endl;
+        cout << string(74, '-') << endl;
+        
+        // Print tokens for current page
+        for (int i = startIdx; i < endIdx; i++) {
+            const Token& token = tokens[i];
+            
+            // Extract last 4 digits of token ID
+            string tokenNum = token.getTokenId();
+            if (tokenNum.find("TKN") == 0) {
+                tokenNum = tokenNum.substr(3);
+            }
+            if (tokenNum.length() >= 4) {
+                tokenNum = tokenNum.substr(tokenNum.length() - 4);
+            }
+            
+            // Get timestamp
+            time_t t = token.getTimestamp();
+            tm* timeinfo = localtime(&t);
+            ostringstream timeStr;
+            timeStr << (1900 + timeinfo->tm_year) << "-"
+                   << setfill('0') << setw(2) << (1 + timeinfo->tm_mon) << "-"
+                   << setfill('0') << setw(2) << timeinfo->tm_mday << " "
+                   << setfill('0') << setw(2) << timeinfo->tm_hour << ":"
+                   << setfill('0') << setw(2) << timeinfo->tm_min;
+            
+            // Get items summary
+            auto items = token.getItems();
+            string itemsSummary = to_string(items.size()) + " item(s)";
+            if (items.size() > 0) {
+                itemsSummary = to_string(items.size()) + " item(s)";
+            }
+            
+            // Get amount
+            ostringstream amountStr;
+            amountStr << fixed << setprecision(2) << token.getTotalAmount();
+            
+            // Print row
+            cout << left << setw(5) << (to_string(i - startIdx + 1) + ".")
+                 << left << setw(15) << tokenNum
+                 << left << setw(20) << timeStr.str()
+                 << left << setw(20) << itemsSummary
+                 << "BDT " << left << setw(9) << amountStr.str()
+                 << endl;
+        }
+        
+        cout << "\n";
+        
+        // Navigation options
+        if (currentPage > 0 && currentPage < totalPages - 1) {
+            printPrompt("(p)revious | (n)ext | (d)etails [order#] | (q)uit: ");
+        } else if (currentPage == 0 && totalPages > 1) {
+            printPrompt("(n)ext | (d)etails [order#] | (q)uit: ");
+        } else if (currentPage == totalPages - 1 && totalPages > 1) {
+            printPrompt("(p)revious | (d)etails [order#] | (q)uit: ");
+        } else {
+            printPrompt("(d)etails [order#] | (q)uit: ");
+        }
+        
+        string input;
+        cin >> input;
+        
+        if (input == "n" || input == "N") {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            } else {
+                printError("\n✗ Already at the most recent orders.\n");
+                pauseScreen();
+            }
+        } else if (input == "p" || input == "P") {
+            if (currentPage > 0) {
+                currentPage--;
+            } else {
+                printError("\n✗ Already at the oldest orders.\n");
+                pauseScreen();
+            }
+        } else if (input == "d" || input == "D") {
+            int orderNum;
+            printPrompt("Enter order number to view details: ");
+            cin >> orderNum;
+            
+            if (orderNum >= 1 && orderNum <= (endIdx - startIdx)) {
+                int selectedIdx = startIdx + orderNum - 1;
+                clearScreen();
+                printHeader("\n========== ORDER DETAILS ==========");
+                
+                const Token& selectedToken = tokens[selectedIdx];
+                printLabelValue("Token ID: ", selectedToken.getTokenId());
+                printLabelValue("User ID: ", selectedToken.getUserId());
+                
+                time_t t = selectedToken.getTimestamp();
+                printLabelValue("Time: ", string(ctime(&t)));
+                printSeparator();
+                
+                // Items table
+                cout << BOLD << WHITE;
+                cout << left << setw(20) << "ITEM"
+                     << left << setw(8) << "QTY"
+                     << left << setw(14) << "PRICE"
+                     << "TOTAL" << RESET << endl;
+                cout << string(62, '-') << endl;
+                
+                auto items = selectedToken.getItems();
+                for (const auto& item : items) {
+                    cout << left << setw(20) << item.itemName
+                         << left << setw(8) << item.quantity;
+                    {
+                        ostringstream pss;
+                        pss << "BDT " << fixed << setprecision(2) << item.price;
+                        cout << left << setw(14) << pss.str();
+                    }
+                    cout << "BDT " << fixed << setprecision(2) << item.totalPrice << endl;
+                }
+                
+                cout << string(62, '-') << endl;
+                {
+                    ostringstream tot;
+                    tot << "TOTAL AMOUNT: BDT " << fixed << setprecision(2) << selectedToken.getTotalAmount();
+                    printSuccess(tot.str());
+                }
+                cout << "\n";
+                pauseScreen();
+            } else {
+                printError("\n✗ Invalid order number.\n");
+                pauseScreen();
+            }
+        } else if (input == "q" || input == "Q") {
+            break;
+        } else {
+            printError("\n✗ Invalid choice. Please try again.\n");
+            pauseScreen();
+        }
+    }
 }
 
 // Admin operations
@@ -595,18 +869,15 @@ void handleAdminOperations() {
                 manageUserInformation();
                 break;
             case 4:
-                viewFeedbackForDay();
+                viewFeedbackHistoryPaginated();
                 break;
             case 5:
-                viewAdminFeedbackHistory();
-                break;
-            case 6:
                 adminViewDailyMenuRatings();
                 break;
-            case 7:
+            case 6:
                 SalesAnalytics::handleSalesAnalyticsOperations();
                 break;
-            case 8:
+            case 7:
                 AuthManager::logout();
                 printSuccess("\n✓ Logged out successfully!\n");
                 pauseScreen();
@@ -1106,42 +1377,153 @@ void viewDailyMenuRatings() {
     pauseScreen();
 }
 
-// Admin: View feedback for all orders
-void viewFeedbackForDay() {
+// Admin: View Feedback History with Pagination (Merged from options 4 & 5)
+void viewFeedbackHistoryPaginated() {
     clearScreen();
+    auto allFeedbackHistory = FeedbackManager::getAllFeedbackHistory();
     
-    printHeader("\n========== ADMIN: ORDER FEEDBACK & RATINGS ==========");
-    
-    vector<Token> allTokens = FileManager::loadTokens();
-    vector<Feedback> allFeedbacks = FileManager::loadFeedback();
-    
-    if (allFeedbacks.empty()) {
+    if (allFeedbackHistory.empty()) {
         printInfo("\nNo feedback submitted yet.");
         pauseScreen();
         return;
     }
     
-    // Group feedbacks by token
-    printInfo("\nAll Order Feedback:\n");
+    // Sort by timestamp (most recent first)
+    sort(allFeedbackHistory.begin(), allFeedbackHistory.end(), 
+         [](const tuple<Feedback, Token, string>& a, const tuple<Feedback, Token, string>& b) {
+             return get<0>(a).getTimestamp() > get<0>(b).getTimestamp();
+         });
     
-    for (const auto& token : allTokens) {
-        vector<Feedback> tokenFeedbacks = FeedbackManager::getFeedbackForToken(token.getTokenId());
+    int itemsPerPage = 10;
+    int currentPage = 0;
+    int totalPages = (allFeedbackHistory.size() + itemsPerPage - 1) / itemsPerPage;
+    
+    while (true) {
+        clearScreen();
+        printHeader("\n========== FEEDBACK HISTORY (Paginated) ==========");
+        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
+        printLabelValue("Total Feedbacks: ", to_string(allFeedbackHistory.size()));
+        printSeparator();
         
-        if (!tokenFeedbacks.empty()) {
-            cout << BOLD << CYAN << "Token: " << token.getTokenId().substr(0, 8) << " | User: " << token.getUserId() << RESET << endl;
-            printLabelValue("Total Amount: ", "BDT " + to_string(token.getTotalAmount()));
+        // Print table header
+        cout << BOLD << WHITE;
+        cout << left << setw(4) << "No."
+             << left << setw(10) << "Token#"
+             << left << setw(12) << "User ID"
+             << left << setw(16) << "Food Item"
+             << left << setw(14) << "Day & Meal"
+             << left << setw(8) << "Rating"
+             << left << setw(25) << "Feedback" << RESET << endl;
+        cout << string(99, '-') << endl;
+        
+        int startIdx = currentPage * itemsPerPage;
+        int endIdx = min(startIdx + itemsPerPage, (int)allFeedbackHistory.size());
+        
+        for (int i = startIdx; i < endIdx; ++i) {
+            const auto& [feedback, token, dayMeal] = allFeedbackHistory[i];
             
-            for (size_t i = 0; i < tokenFeedbacks.size(); ++i) {
-                cout << "  Feedback:" << endl;
-                cout << "    Rating: " << tokenFeedbacks[i].getRating() << "/5" << endl;
-                cout << "    Comment: " << tokenFeedbacks[i].getRemark() << endl;
+            string tokenId = feedback.getTokenId();
+            string tokenNum = tokenId;
+            if (tokenNum.find("TKN") == 0) {
+                tokenNum = tokenNum.substr(3);
+            }
+            if (tokenNum.length() >= 3) {
+                tokenNum = tokenNum.substr(tokenNum.length() - 3);
             }
             
-            printSeparator();
+            // Get food item from menu based on package name
+            string packageName = token.getItems()[0].itemName;
+            string foodItem = FileManager::getFoodItemsFromPackage(packageName);
+            
+            // If menu lookup failed, extract from token items
+            if (foodItem == "N/A") {
+                auto items = token.getItems();
+                if (items.size() > 1) {
+                    foodItem = items[1].itemName;
+                } else if (items.size() > 0) {
+                    foodItem = items[0].itemName;
+                }
+            }
+            
+            // Clean up and extract first word
+            while (!foodItem.empty() && foodItem[0] == ' ') foodItem = foodItem.substr(1);
+            while (!foodItem.empty() && foodItem.back() == ' ') foodItem.pop_back();
+            
+            size_t spacePos = foodItem.find(" ");
+            if (spacePos != string::npos) {
+                foodItem = foodItem.substr(0, spacePos);
+            }
+            
+            if (foodItem.length() > 14) {
+                foodItem = foodItem.substr(0, 12) + "..";
+            }
+            
+            // Truncate remark if too long
+            string displayRemark = feedback.getRemark();
+            if (displayRemark.length() > 20) {
+                displayRemark = displayRemark.substr(0, 17) + "...";
+            }
+            
+            // Color code the rating
+            string ratingStr = to_string(feedback.getRating()) + "/5";
+            string ratingColor = RESET;
+            int rating = feedback.getRating();
+            
+            if (rating == 5) {
+                ratingColor = GREEN;
+            } else if (rating == 4) {
+                ratingColor = GREEN;
+            } else if (rating == 3) {
+                ratingColor = YELLOW;
+            } else {
+                ratingColor = RED;
+            }
+            
+            cout << left << setw(4) << (to_string(i + 1) + ".")
+                 << left << setw(10) << tokenNum
+                 << left << setw(12) << feedback.getUserId()
+                 << left << setw(16) << foodItem
+                 << left << setw(14) << dayMeal
+                 << ratingColor << BOLD << left << setw(8) << ratingStr << RESET
+                 << left << setw(25) << displayRemark << endl;
+        }
+        
+        cout << string(99, '-') << endl;
+        printSeparator();
+        printInfo("\nNavigation Options:");
+        if (currentPage > 0) {
+            printInfo("'p' - Previous 10 Feedbacks (Earlier Timeline)");
+        }
+        if (currentPage < totalPages - 1) {
+            printInfo("'n' - Next 10 Feedbacks (Recent Timeline)");
+        }
+        printInfo("'q' - Quit");
+        
+        printPrompt("\nEnter your choice: ");
+        char choice;
+        cin >> choice;
+        
+        if (choice == 'n' || choice == 'N') {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            } else {
+                printError("\n✗ Already viewing the most recent feedbacks.");
+                pauseScreen();
+            }
+        } else if (choice == 'p' || choice == 'P') {
+            if (currentPage > 0) {
+                currentPage--;
+            } else {
+                printError("\n✗ Already viewing the oldest feedbacks.");
+                pauseScreen();
+            }
+        } else if (choice == 'q' || choice == 'Q') {
+            break;
+        } else {
+            printError("\n✗ Invalid choice.");
+            pauseScreen();
         }
     }
-    
-    pauseScreen();
 }
 
 // Admin: View daily menu ratings by day and meal type
@@ -1300,124 +1682,6 @@ void viewUserFeedbackHistory() {
     
     cout << endl;
     printInfo("Total Feedback Submitted: " + to_string(userFeedbackHistory.size()));
-    
-    pauseScreen();
-}
-
-// View admin detailed feedback history
-void viewAdminFeedbackHistory() {
-    clearScreen();
-    auto allFeedbackHistory = FeedbackManager::getAllFeedbackHistory();
-    
-    if (allFeedbackHistory.empty()) {
-        printInfo("\nNo feedback submitted yet.");
-        pauseScreen();
-        return;
-    }
-    
-    printHeader("\n========== ALL FEEDBACK HISTORY (DETAILED) ==========");
-    printInfo("\nFeedback History:\n");
-    
-    // Print table header
-    cout << BOLD << WHITE;
-    cout << left << setw(5) << "No."
-         << left << setw(8) << "Token#"
-         << left << setw(16) << "Food Item"
-         << left << setw(12) << "User ID"
-         << left << setw(15) << "Day & Meal"
-         << left << setw(8) << "Rating"
-         << left << setw(20) << "Feedback" << RESET << endl;
-    cout << string(84, '-') << endl;
-    
-    int count = 1;
-    double totalRating = 0.0;
-    int excellentCount = 0, goodCount = 0, fairCount = 0, poorCount = 0;
-    
-    for (const auto& [feedback, token, dayMeal] : allFeedbackHistory) {
-        string userId = feedback.getUserId();
-        string remark = feedback.getRemark();
-        string tokenId = feedback.getTokenId();
-        
-        // Extract last 3 digits of token
-        string tokenNum = tokenId;
-        if (tokenNum.find("TKN") == 0) {
-            tokenNum = tokenNum.substr(3);
-        }
-        if (tokenNum.length() >= 3) {
-            tokenNum = tokenNum.substr(tokenNum.length() - 3);
-        }
-        
-        // Get food item from menu based on package name
-        string packageName = token.getItems()[0].itemName;
-        string foodItem = FileManager::getFoodItemsFromPackage(packageName);
-        
-        // If menu lookup failed, extract from token items
-        if (foodItem == "N/A") {
-            auto items = token.getItems();
-            if (items.size() > 1) {
-                foodItem = items[1].itemName;
-            } else if (items.size() > 0) {
-                foodItem = items[0].itemName;
-            }
-        }
-        
-        // Clean up and extract first word
-        while (!foodItem.empty() && foodItem[0] == ' ') foodItem = foodItem.substr(1);
-        while (!foodItem.empty() && foodItem.back() == ' ') foodItem.pop_back();
-        
-        size_t spacePos = foodItem.find(" ");
-        if (spacePos != string::npos) {
-            foodItem = foodItem.substr(0, spacePos);
-        }
-        
-        if (foodItem.length() > 12) {
-            foodItem = foodItem.substr(0, 10) + "...";
-        }
-        
-        // Truncate remark if too long
-        string displayRemark = remark;
-        if (displayRemark.length() > 17) {
-            displayRemark = displayRemark.substr(0, 17) + "...";
-        }
-        
-        // Color code the rating
-        string ratingStr = to_string(feedback.getRating()) + "/5";
-        string ratingColor = RESET;
-        int rating = feedback.getRating();
-        totalRating += rating;
-        
-        if (rating == 5) {
-            ratingColor = GREEN;
-            excellentCount++;
-        } else if (rating == 4) {
-            ratingColor = GREEN;
-            goodCount++;
-        } else if (rating == 3) {
-            ratingColor = YELLOW;
-            fairCount++;
-        } else {
-            ratingColor = RED;
-            poorCount++;
-        }
-        
-        cout << left << setw(5) << (to_string(count) + ".")
-             << left << setw(8) << tokenNum
-             << left << setw(16) << foodItem
-             << left << setw(12) << userId
-             << left << setw(15) << dayMeal
-             << ratingColor << BOLD << left << setw(8) << ratingStr << RESET
-             << left << setw(20) << displayRemark << endl;
-        
-        count++;
-    }
-    
-    cout << endl;
-    printInfo("Total Feedback: " + to_string(allFeedbackHistory.size()));
-    
-    double avgRating = totalRating / allFeedbackHistory.size();
-    cout << "Average Rating: " << fixed << setprecision(2) << avgRating << "/5" << endl;
-    cout << "Excellent (5): " << excellentCount << " | Good (4): " << goodCount 
-         << " | Fair (3): " << fairCount << " | Poor (1-2): " << poorCount << endl;
     
     pauseScreen();
 }
