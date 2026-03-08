@@ -37,7 +37,6 @@ void viewAllUsers();
 void manageUserInformation();
 void searchUserByID();
 void viewStudentInfo();
-void viewTeacherInfo();
 void submitFeedback();
 void viewAllMenuRatings();
 void viewFeedbackHistoryPaginated();
@@ -123,7 +122,7 @@ void displayStudentMenu() {
     
     cout<<"\n";
     printHeader("╔═══════════════════════════════════════╗");
-    printHeader("║         STUDENT/TEACHER MENU          ║");
+    printHeader("║             STUDENT MENU              ║");
     printHeader("╚═══════════════════════════════════════╝");
     printLabelValue("Welcome: ", currentUser->getName());
     printLabelValue("User ID: ", currentUser->getUserID());
@@ -996,8 +995,7 @@ void manageUserInformation() {
         printHeader("\n========== MANAGE USER INFORMATION ==========");
         printInfo("1. Search User by ID");
         printInfo("2. View Student Information (Paginated)");
-        printInfo("3. View Teacher Information (Paginated)");
-        printInfo("4. Back to Admin Menu");
+        printInfo("3. Back to Admin Menu");
         printPrompt("\nEnter your choice: ");
         cin >> choice;
         
@@ -1009,9 +1007,6 @@ void manageUserInformation() {
                 viewStudentInfo();
                 break;
             case 3:
-                viewTeacherInfo();
-                break;
-            case 4:
                 return;
             default:
                 printError("\n✗ Invalid choice. Please try again.\n");
@@ -1093,90 +1088,6 @@ void viewStudentInfo() {
             printLabelValue("Name: ", students[i].getName());
             cout << "   ";
             printLabelValue("Balance: BDT ", to_string(students[i].getWalletBalance()));
-        }
-        
-        printSeparator();
-        printInfo("\nNavigation Options:");
-        if (currentPage > 0) {
-            printInfo("'p' - Previous Page");
-        }
-        if (currentPage < totalPages - 1) {
-            printInfo("'n' - Next Page");
-        }
-        printInfo("'q' - Quit");
-        
-        printPrompt("\nEnter your choice: ");
-        char choice;
-        cin >> choice;
-        
-        if (choice == 'n' || choice == 'N') {
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-            } else {
-                printError("\n✗ Already on the last page.");
-                pauseScreen();
-            }
-        } else if (choice == 'p' || choice == 'P') {
-            if (currentPage > 0) {
-                currentPage--;
-            } else {
-                printError("\n✗ Already on the first page.");
-                pauseScreen();
-            }
-        } else if (choice == 'q' || choice == 'Q') {
-            break;
-        } else {
-            printError("\n✗ Invalid choice.");
-            pauseScreen();
-        }
-    }
-}
-
-// View Teacher Information with Pagination
-void viewTeacherInfo() {
-    clearScreen();
-    vector<User> users = FileManager::loadUsers();
-    
-    // Filter only teachers
-    vector<User> teachers;
-    for (const auto& user : users) {
-        if (user.getRole() == "TEACHER") {
-            teachers.push_back(user);
-        }
-    }
-    
-    // Sort by user ID (ascending)
-    sort(teachers.begin(), teachers.end(), [](const User& a, const User& b) {
-        return a.getUserID() < b.getUserID();
-    });
-    
-    if (teachers.empty()) {
-        printError("\n✗ No teachers found in the system.");
-        pauseScreen();
-        return;
-    }
-    
-    int itemsPerPage = 10;
-    int currentPage = 0;
-    int totalPages = (teachers.size() + itemsPerPage - 1) / itemsPerPage;
-    
-    while (true) {
-        clearScreen();
-        printHeader("\n========== TEACHER INFORMATION (Paginated) ==========");
-        printLabelValue("Page: ", to_string(currentPage + 1) + " / " + to_string(totalPages));
-        printLabelValue("Total Teachers: ", to_string(teachers.size()));
-        printSeparator();
-        
-        int startIdx = currentPage * itemsPerPage;
-        int endIdx = min(startIdx + itemsPerPage, (int)teachers.size());
-        
-        for (int i = startIdx; i < endIdx; ++i) {
-            cout << "\n" << (i + 1) << ". ";
-            printLabelValue("ID: ", teachers[i].getUserID());
-            cout << "   ";
-            printLabelValue("Name: ", teachers[i].getName());
-            cout << "   ";
-            printLabelValue("Balance: BDT ", to_string(teachers[i].getWalletBalance()));
         }
         
         printSeparator();
