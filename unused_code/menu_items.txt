@@ -1,0 +1,12 @@
+1|Egg Paratha|breakfast|50.00|96
+2|Chicken Sandwich|breakfast|80.00|94
+3|Noodles|breakfast|60.00|100
+4|Tea|breakfast|15.00|199
+5|Rice with Chicken Curry|lunch|120.00|78
+6|Rice with Beef Curry|lunch|150.00|58
+7|Fried Rice|lunch|100.00|77
+8|Chicken Biryani|lunch|140.00|70
+9|Chicken Burger|dinner|150.00|60
+10|Beef Burger|dinner|180.00|50
+11|Pasta|dinner|120.00|70
+12|Pizza Slice|dinner|100.00|80

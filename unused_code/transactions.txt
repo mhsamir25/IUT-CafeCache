@@ -1,0 +1,8 @@
+230042109|Egg Paratha|breakfast|2|100.00|2025-12-21 02:04:06|2025-12-21|Sunday
+230042109|Tea|breakfast|1|15.00|2025-12-21 02:04:06|2025-12-21|Sunday
+230042109|Chicken Sandwich|breakfast|3|240.00|2025-12-21 02:04:06|2025-12-21|Sunday
+230042109|Rice with Chicken Curry|lunch|2|240.00|2025-12-21 02:04:58|2025-12-21|Sunday
+230042109|Rice with Beef Curry|lunch|2|300.00|2025-12-21 02:04:58|2025-12-21|Sunday
+230042109|Fried Rice|lunch|3|300.00|2025-12-21 02:04:58|2025-12-21|Sunday
+230042109|Egg Paratha|breakfast|2|100.00|2026-02-15 20:10:01|2026-02-15|Sunday
+230042109|Chicken Sandwich|breakfast|3|240.00|2026-02-15 20:10:01|2026-02-15|Sunday
