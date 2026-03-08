@@ -116,6 +116,7 @@ The project is designed with a **modular approach**, separating concerns into di
 
 1. Compile the project using a C++ compiler (e.g., `g++` or `Visual Studio`)  
 ```bash
-g++ main.cpp -o IUTCafeCache
+g++ *.cpp -o main
+Run the executable 'main' file.
 
 
