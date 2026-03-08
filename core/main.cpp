@@ -135,7 +135,7 @@ void displayStudentMenu() {
     
     printInfo("\n1. Submit Recharge Request");
     printInfo("2. View Recharge Request Status");
-    printInfo("3. Place Order (Weekday Menu)");
+    printInfo("3. Place Order (7-Day Menu)");
     printInfo("4. View Purchase History");
     printInfo("5. Submit Feedback for Your Orders");
     printInfo("6. View Your Feedback History");
@@ -263,11 +263,11 @@ void generateOrderToken() {
             currentUser->setWalletBalance(updatedUser->getWalletBalance());
         }
 
-    printHeader("\n========== PLACE ORDER (WEEKDAY MENU) ==========");
+    printHeader("\n========== PLACE ORDER (7-DAY MENU) ==========");
     printLabelValue("Wallet Balance: BDT ", to_string(currentUser->getWalletBalance()));
 
-        // Weekday selection
-        vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+        // 7-Day selection
+        vector<string> days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 
         for (size_t i = 0; i < days.size(); ++i) {
             printInfo(to_string(i+1) + ". " + days[i]);
@@ -275,11 +275,11 @@ void generateOrderToken() {
         printInfo("0. Cancel");
 
         int dayChoice;
-        printPrompt("\nSelect day (1-5): ");
+        printPrompt("\nSelect day (1-7): ");
         cin >> dayChoice;
 
         if (dayChoice == 0) return;
-        if (dayChoice < 1 || dayChoice > 5) {
+        if (dayChoice < 1 || dayChoice > 7) {
             printError("\n✗ Invalid day selection.");
             pauseScreen();
             return;
@@ -305,7 +305,7 @@ void generateOrderToken() {
             return;
         }
 
-        // Define weekday menus: only item names vary per day/meal while prices are fixed per meal type
+        // Define 7-day menus: only item names vary per day/meal while prices are fixed per meal type
         // Breakfast price = 40, Lunch price = 70, Dinner price = 70
         vector<string> menuItems;
         double itemPrice = 0.0;
@@ -346,13 +346,29 @@ void generateOrderToken() {
             } else {
                 menuItems = { "Morog Polao (small)", "Salad", "Fried Veg" };
             }
-        } else { // Friday
+        } else if (selectedDay == "Friday") {
             if (mealChoice == 1) {
                 menuItems = { "Luchi & Aloor Dum", "Chana Puri", "Tea" };
             } else if (mealChoice == 2) {
                 menuItems = { "Rice & Mutton Curry (small)", "Daal", "Green Veg" };
             } else {
                 menuItems = { "Pulao & Chicken", "Korma (small)", "Raita" };
+            }
+        } else if (selectedDay == "Saturday") {
+            if (mealChoice == 1) {
+                menuItems = { "Poori & Aloo Sabzi", "Chanur Roti", "Tea" };
+            } else if (mealChoice == 2) {
+                menuItems = { "Rice & Roasted Chicken", "Lentil Soup", "Mixed Vegetables" };
+            } else {
+                menuItems = { "Biryani (vegetable)", "Yogurt Curry", "Spiced Potatoes" };
+            }
+        } else { // Sunday
+            if (mealChoice == 1) {
+                menuItems = { "Puri & Chana", "Parantha & Egg", "Tea" };
+            } else if (mealChoice == 2) {
+                menuItems = { "Rice & Prawn Curry (small)", "Dal Makhani", "Cucumber Salad" };
+            } else {
+                menuItems = { "Chicken Biryani (small)", "Raita", "Green Chutney" };
             }
         }
 
