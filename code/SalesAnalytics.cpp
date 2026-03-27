@@ -122,26 +122,33 @@ string getSaturdayOfWeek(const string& dateStr) {
     return subtractDaysFromDate(dateStr, daysBack);
 }
 
-// Check if a date is within last 30 days
-// We use the latest token date as reference, or current date
-bool SalesAnalytics::isWithinLast30Days(const string& tokenDate, const string& referenceDate) {
-    int token = dateStringToInt(tokenDate);
-    int reference = dateStringToInt(referenceDate);
+
+bool SalesAnalytics::isWithinLast30Days(const std::string& tokenDate, const std::string& referenceDate) {
+    auto stringToTimeT = [](const std::string& dateStr) -> std::time_t {
+        std::tm tm = {};
+        std::istringstream ss(dateStr);
+        // Parses YYYYMMDD format
+        ss >> std::get_time(&tm, "%Y%m%d");
+        
+        if (ss.fail()) return 0;
+
+        // mktime normalizes the struct and returns a time_t (seconds since epoch)
+        return std::mktime(&tm);
+    };
+
+    std::time_t tokenTime = stringToTimeT(tokenDate);
+    std::time_t referenceTime = stringToTimeT(referenceDate);
+
+    // Difference in seconds
+    double secondsDiff = std::difftime(referenceTime, tokenTime);
     
-    // Simple calculation: difference should be <= 30 (assuming daily increment)
-    // This is a simplified check - proper date arithmetic would use tm structures
-    // For this project, we assume dates are YYYYMMDD format where difference <= 30 is acceptable
-    
-    // More precise approach: calculate the actual difference
-    // tokenDate and referenceDate are in format YYYYMMDD
-    int yearDiff = (reference / 10000) - (token / 10000);
-    int monthDiff = ((reference / 100) % 100) - ((token / 100) % 100);
-    int dayDiff = (reference % 100) - (token % 100);
-    
-    int totalDaysDiff = yearDiff * 365 + monthDiff * 30 + dayDiff;
-    
-    return totalDaysDiff >= 0 && totalDaysDiff <= 30;
+    // Convert 30 days to seconds: 30 days * 24 hours * 60 mins * 60 secs
+    const double thirtyDaysInSeconds = 30 * 24 * 60 * 60;
+
+    return secondsDiff >= 0 && secondsDiff <= thirtyDaysInSeconds;
 }
+
+
 
 // Get top 5 packages sold in the last 30 days
 vector<PackageSales> SalesAnalytics::getTop5Packages() {
@@ -253,6 +260,9 @@ void SalesAnalytics::displayTop5PackagesGraph() {
             cout << "     | "; // Blank row (no label)
         }
         
+
+        cout << "   "; // initial 3 space
+
         // Print bars for this height level
         for (size_t i = 0; i < topPackages.size(); ++i) {
             int barHeight = topPackages[i].salesCount;
@@ -273,7 +283,7 @@ void SalesAnalytics::displayTop5PackagesGraph() {
                 cout << " ";
             }
             
-            cout << "       "; // Space between bars (7 chars)
+            cout << "      "; // Space between bars (6 chars)
         }
         
         cout << "\n";
@@ -403,6 +413,7 @@ void SalesAnalytics::displayPackageWeeklyGraph(const string& packageName) {
             cout << "     | "; // Blank row (no label)
         }
         
+         cout << "   "; // initial 3 space
         // Print bars for this height level
         for (const auto& date : dateList) {
             int barHeight = dailySales[date];
@@ -430,7 +441,7 @@ void SalesAnalytics::displayPackageWeeklyGraph(const string& packageName) {
     }
     
     // Print bottom axis line
-    cout << "     +" << string(dateList.size() * 6 - 1, '-') << "\n";
+    cout << "     +" << string(dateList.size() * 6 - 1, '-') << "---" << "\n";
     
     // Print dates on X-axis (DD/MM format)
     cout << "     | ";
@@ -505,28 +516,34 @@ map<string, pair<int, int>> SalesAnalytics::getPackageSalesLast30DaysWeekly(cons
         weekRanges[week] = {weekStartDate, weekEndDate};
     }
     
-    // Count sales for this package across the 30 days, grouped by weekly chunks
+        // Count sales for this package across the 30 days, grouped by weekly chunks
+    auto stringToTime = [](const std::string& dateStr) -> std::time_t {
+        std::tm tm = {};
+        std::istringstream ss(dateStr);
+        ss >> std::get_time(&tm, "%Y%m%d");
+        if (ss.fail()) return 0;
+        return std::mktime(&tm);
+    };
+
+    std::time_t startTime = stringToTime(thirtyDaysAgo);
+
     for (const auto& token : tokens) {
         string tokenDate = extractDateFromToken(token.getTokenId());
         
-        // Check if token is within last 30 days
+        // Use the function we updated earlier
         if (isWithinLast30Days(tokenDate, todayDate)) {
-            // Find which week this token belongs to
-            int tokenInt = dateStringToInt(tokenDate);
-            int startInt = dateStringToInt(thirtyDaysAgo);
+            std::time_t tokenTime = stringToTime(tokenDate);
+
+            // Calculate actual days difference using timestamps
+            double secondsDiff = std::difftime(tokenTime, startTime);
+            int totalDaysDiff = static_cast<int>(secondsDiff / 86400.0);
             
-            int yearDiff = (tokenInt / 10000) - (startInt / 10000);
-            int monthDiff = ((tokenInt / 100) % 100) - ((startInt / 100) % 100);
-            int dayDiff = (tokenInt % 100) - (startInt % 100);
-            
-            int totalDaysDiff = yearDiff * 365 + monthDiff * 30 + dayDiff;
-            
+            // Ensure we are within the 30-day window (0 to 29)
             if (totalDaysDiff >= 0 && totalDaysDiff <= 29) {
                 int weekIndex = totalDaysDiff / 7;
-                if (weekIndex > 4) weekIndex = 4; // Cap at week 4
+                if (weekIndex > 4) weekIndex = 4; // Safety cap
                 
-                vector<OrderItem> items = token.getItems();
-                for (const auto& item : items) {
+                for (const auto& item : token.getItems()) {
                     if (item.itemName == packageName) {
                         weeklySales[weekIndex] += item.quantity;
                     }
