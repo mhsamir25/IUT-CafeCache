@@ -929,7 +929,9 @@ void processRechargeRequest() {
     cout << string(60, '-') << "\n";
     for (size_t i = 0; i < pending.size(); ++i) {
         string fullId = pending[i].getRequestId();
-        string shortId = fullId.substr(0, std::min((size_t)8, fullId.size()));
+        // Extract unique part after the dash (e.g., "1001" from "REQ20260327-1001")
+        size_t dashPos = fullId.find('-');
+        string shortId = (dashPos != string::npos) ? fullId.substr(dashPos + 1) : fullId;
         // format amount
         std::ostringstream amt; amt << fixed << setprecision(2) << pending[i].getAmount();
         cout << left << setw(3) << (to_string(i+1) + ".") << setw(12) << shortId << setw(12) << pending[i].getUserId() << setw(12) << ("BDT " + amt.str()) << "\n";
@@ -963,7 +965,9 @@ void processRechargeRequest() {
         for (int idx : selectedIndices) {
             if (idx >= 1 && idx <= (int)pending.size()) {
                 string fullId = pending[idx - 1].getRequestId();
-                string shortId = fullId.substr(0, std::min((size_t)8, fullId.size()));
+                // Extract unique part after the dash (e.g., "1001" from "REQ20260327-1001")
+                size_t dashPos = fullId.find('-');
+                string shortId = (dashPos != string::npos) ? fullId.substr(dashPos + 1) : fullId;
                 std::ostringstream amt; amt << fixed << setprecision(2) << pending[idx - 1].getAmount();
                 cout << "  #" << idx << " | " << shortId << " | " << pending[idx - 1].getUserId() << " | BDT " << amt.str() << "\n";
             }
@@ -1502,6 +1506,9 @@ void adminViewDailyMenuRatings() {
 int main() {
     // Initialize console for Windows UTF-8 and ANSI color support
     initializeConsole();
+    
+    // Initialize persistent token counter
+    TokenGenerator::initializeCounter();
     
     int choice;
 

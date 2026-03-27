@@ -2,13 +2,33 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <fstream>
 
 using namespace std;
 
-int TokenGenerator::tokenCounter = 1000;
+int TokenGenerator::tokenCounter = 0;
+
+void TokenGenerator::initializeCounter() {
+    ifstream file("counter.txt");
+    if (file.is_open()) {
+        file >> tokenCounter;
+        file.close();
+    } else {
+        tokenCounter = 1000;  // Default starting point
+    }
+}
+
+void TokenGenerator::saveCounter() {
+    ofstream file("counter.txt");
+    if (file.is_open()) {
+        file << tokenCounter;
+        file.close();
+    }
+}
 
 string TokenGenerator::generateTokenId() {
     tokenCounter++;
+    saveCounter();
     
     time_t now = time(nullptr);
     tm* ltm = localtime(&now);
@@ -25,6 +45,7 @@ string TokenGenerator::generateTokenId() {
 
 string TokenGenerator::generateRequestId() {
     tokenCounter++;
+    saveCounter();
     
     time_t now = time(nullptr);
     tm* ltm = localtime(&now);
