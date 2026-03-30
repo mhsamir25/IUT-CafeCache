@@ -102,6 +102,7 @@ Token Token::fromFileString(const string& line) {
     getline(ss, itemsStr, '|');
     
     Token token(tId, uid);
+    token.timestamp = stol(timeStr);  // Restore the actual timestamp from file
     token.setStatus(stat);
     
     // Parse items

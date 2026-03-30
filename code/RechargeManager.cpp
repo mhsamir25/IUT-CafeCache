@@ -125,7 +125,7 @@ vector<int> RechargeManager::parseRequestIndices(const string& input, int maxSiz
     size_t start = 0;
     
     // Split by comma
-    while (start < temp.length()) {
+    while (start < temp.length()){
         size_t comma = temp.find(',', start);
         if (comma == string::npos) comma = temp.length();
         
