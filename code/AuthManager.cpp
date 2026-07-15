@@ -38,3 +38,5 @@ bool AuthManager::isLoggedIn(){
 bool AuthManager::isAdmin(){
     return currentUser != nullptr && currentUser->getRole() == "ADMIN";
 }
+
+//Samirullah Babaji sherra
